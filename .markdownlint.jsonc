@@ -1,0 +1,6 @@
+{
+  "MD013": false,              // line-length off (common in docs)
+  "MD033": { "allowed_elements": ["br","img","a","details","summary"] },
+  "MD041": false,              // no "first line heading" requirement
+  "MD007": { "indent": 2 }     // list indent
+}
