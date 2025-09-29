@@ -4,6 +4,7 @@
   },
   "scripts": {
     "md:check": "markdownlint-cli2",
-    "md:fix": "markdownlint-cli2 --fix"
+    "md:fix": "markdownlint-cli2 --fix",
+    "postgresql": "docker start e70957a3e061570d229cf1ccfff22fd8f5d567bdfa33fcc6a3bc7ee17ae9a152"
   }
 }

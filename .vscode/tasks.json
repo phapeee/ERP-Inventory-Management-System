@@ -1,0 +1,32 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "type": "dotnet",
+      "task": "watch ERP_backend",
+      "file": "/home/ubuntu/ERP-Inventory-Management-System/ERP_backend/ERP_backend.csproj",
+      "problemMatcher": [],
+      "label": "dotnet: watch ERP_backend"
+    },
+    {
+      "type": "npm",
+      "script": "start",
+      "path": "ERP_frontend",
+      "problemMatcher": [],
+      "label": "npm: start - ERP_frontend",
+      "detail": "ng serve --proxy-config proxy.conf.json"
+    },
+    {
+      "type": "npm",
+      "script": "postgresql",
+      "problemMatcher": [],
+      "label": "npm: postgresql",
+      "detail": "docker start <postgresql_container>"
+    },
+    {
+      "label": "Dev: start Frontend + Backend",
+      "dependsOn": ["dotnet: watch ERP_backend", "npm: start - ERP_frontend", "npm: postgresql"],
+      "dependsOrder": "parallel"
+    }
+  ]
+}
