@@ -139,3 +139,90 @@ dist
 vite.config.js.timestamp-*
 vite.config.ts.timestamp-*
 .vite/
+
+# Visual Studio / .NET
+.vs/
+*.user
+*.suo
+*.userosscache
+*.sln.docstates
+*.csproj.user
+
+# Build output
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+[Rr]eleases/
+[Ll]og/
+[Ll]ogs/
+[Ll]ogfile*
+[Ll]ogging/
+[Ll]aunchProfiles/
+[Tt]est[Rr]esults/
+**/TestResults/
+**/x64/
+**/x86/
+**/[Aa][Rr][Mm]/
+**/[Aa][Rr][Mm]64/
+**/[Pp]ublish/
+*.Publish.xml
+**/net9.0/
+
+# NuGet
+*.nupkg
+*.snupkg
+packages/
+.nuget/
+project.lock.json
+project.fragment.lock.json
+artifacts/
+
+# Entity Framework / SQL
+*.mdf
+*.ldf
+*.ndf
+*.dbmdl
+
+# Visual Studio profiler
+*.psess
+*.vsp
+*.vspx
+*.sap
+
+# .NET tooling
+.env.local
+local.settings.json
+.settings/
+Generated Files/
+
+# Rider / JetBrains
+.idea/
+*.sln.iml
+
+# Resharper
+*.DotSettings.user
+_ReSharper*/
+*.[Rr]e[Ss]harper
+
+# StyleCop
+StyleCopReport.xml
+
+# Coverage
+*.coverage
+*.coveragexml
+
+# Azure Functions
+bin/Debug/net*/publish/
+
+# Templating
+wwwroot/lib/
+wwwroot/build/
+
+# Misc
+*.pdb
+*.cache
+*.tmp
+~$*
+Thumbs.db
+.DS_Store

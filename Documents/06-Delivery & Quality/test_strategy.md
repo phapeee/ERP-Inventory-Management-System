@@ -41,11 +41,11 @@ Jasmine/Jest for Angular) can isolate dependencies.
 Integration tests verify that different modules work
 correctly together. These tests are simpler in a modular monolith as they are in-process, but still involve actual databases and message queues. Examples include:
 
--   **PIM and Inventory** – verifying that new products propagate to all
+- **PIM and Inventory** – verifying that new products propagate to all
     inventory locations.
--   **Orders & RMA and Accounting** – ensuring that order creation
+- **Orders & RMA and Accounting** – ensuring that order creation
     triggers an accounts receivable entry.
--   **Purchasing & Vendor** – validating that purchase orders update
+- **Purchasing & Vendor** – validating that purchase orders update
     vendor metrics and inventory counts.
 
 Integration tests are run in a controlled
@@ -110,14 +110,14 @@ Performance tests evaluate how the system behaves under various
 workloads. They measure reliability, speed, scalability and
 responsiveness. Key objectives include:
 
--   **Load testing** – verifying that core workflows (e.g. order
+- **Load testing** – verifying that core workflows (e.g. order
     placement, purchase order creation) meet response time targets under
     expected user loads.
--   **Stress testing** – determining breaking points by increasing load
+- **Stress testing** – determining breaking points by increasing load
     beyond expected levels and ensuring the system fails gracefully.
--   **Soak testing** – running the system under steady load for extended
+- **Soak testing** – running the system under steady load for extended
     periods to detect memory leaks or resource exhaustion.
--   **Capacity testing** – measuring how many concurrent users/orders
+- **Capacity testing** – measuring how many concurrent users/orders
     the system can handle before performance degrades.
 
 Performance tests should run in an environment that reflects production
@@ -139,15 +139,15 @@ prioritise vulnerabilities by severity, and fix them; retest to verify
 fixes and report results to stakeholders in clear language. Common
 security test types include:
 
--   **Vulnerability scanning** – automated scanning for known weaknesses
+- **Vulnerability scanning** – automated scanning for known weaknesses
     such as outdated dependencies, misconfigurations or weak passwords.
--   **Penetration testing** – ethical hackers attempt to exploit
+- **Penetration testing** – ethical hackers attempt to exploit
     authentication, authorization or input handling flaws.
--   **Risk assessment and threat modelling** – identifying potential
+- **Risk assessment and threat modelling** – identifying potential
     threats and their impact.
--   **Static and dynamic analysis** – scanning code and running
+- **Static and dynamic analysis** – scanning code and running
     applications with tools like OWASP ZAP, SonarQube or Snyk.
--   **Compliance testing** – ensuring adherence to standards such as
+- **Compliance testing** – ensuring adherence to standards such as
     SOC 2, GDPR or hazardous‑materials shipping regulations.
 
 Security tests should be integrated into the CI/CD pipeline. Automated
@@ -161,20 +161,20 @@ people with disabilities and complies with standards like WCAG 2.1. The
 University of Wisconsin–Madison guide recommends the following
 practices:
 
--   **Combine automated and manual testing.** Automated tools
+- **Combine automated and manual testing.** Automated tools
     (e.g. WAVE, Google Lighthouse, Axe) can detect technical barriers
     such as missing alt text, low colour contrast, improper heading
     hierarchies and inaccessible forms. Manual testing is required to
     discover functional barriers such as keyboard navigation, logical
     reading order and accessible dynamic content.
--   **Perform keyboard navigation tests** by tabbing through all
+- **Perform keyboard navigation tests** by tabbing through all
     interactive elements, ensuring a visible focus indicator, and
     verifying logical navigation order. Check that “skip to main
     content” links work and that menus close with the Esc key.
--   **Conduct screen reader tests** using VoiceOver, NVDA or JAWS to
+- **Conduct screen reader tests** using VoiceOver, NVDA or JAWS to
     verify that headings, alt text and navigation order convey meaning
     correctly.
--   **Use automated page scanners and site crawlers** to evaluate large
+- **Use automated page scanners and site crawlers** to evaluate large
     portions of the site, but review the reports and ensure manual
     review for images, banners, charts or forms.
 
@@ -182,14 +182,18 @@ Accessibility tests are part of both unit (e.g. verifying ARIA
 attributes in components) and E2E test suites. Failures block promotion
 until resolved.
 
+### Spell Checking
+
+Spell checking is an important part of maintaining the quality of the codebase and documentation. It helps to catch typos and spelling errors in code comments, documentation, and user-facing strings. Automated spell checking can be integrated into the CI/CD pipeline to ensure that all committed code is free of spelling errors. Tools like `cspell` can be used to perform automated spell checking.
+
 ### Reliability and Resilience Testing
 
--   **Chaos/Resilience tests** simulate failures of dependencies
+- **Chaos/Resilience tests** simulate failures of dependencies
     (e.g. database outage, message queue slowdowns) to verify that
     the application degrades gracefully, times out correctly and recovers without
     data loss. Injecting faults in a controlled environment reveals
     weaknesses before they occur in production.
--   **Backup and recovery tests** validate that data can be restored
+- **Backup and recovery tests** validate that data can be restored
     from backups and that failover procedures meet recovery objectives.
 
 Test Environment and Data
@@ -198,14 +202,14 @@ Test Environment and Data
 Different environments are used for testing, each requiring appropriate
 data:
 
--   **Development:** synthetic data or dummy records to test units and
+- **Development:** synthetic data or dummy records to test units and
     small integration slices. Developers can create data in their local
     containers.
--   **QA / Staging:** mirrors production infrastructure and uses
+- **QA / Staging:** mirrors production infrastructure and uses
     sanitized production data. Test data sets cover typical and edge
     cases across all modules.
--   **UAT:** sanitized data with full workflows for acceptance tests.
--   **Performance & Security test environments:** dedicated clusters
+- **UAT:** sanitized data with full workflows for acceptance tests.
+- **Performance & Security test environments:** dedicated clusters
     configured like production to avoid impacting regular testing. Data
     volumes reflect expected load.
 
@@ -216,10 +220,10 @@ repeatable.
 Test Data Management Strategy
 -----------------------------
 
--   **Data Generation:** Realistic test data will be created using a combination of synthetic data generation tools and sanitized production data. For performance testing, data generation scripts will be used to create large volumes of data that mimic production data distribution.
--   **Data Sanitization:** Production data will be anonymized before being used in test environments. This process will involve scrubbing all personally identifiable information (PII) and other sensitive data. A dedicated ETL process will be created to extract, sanitize, and load production data into the QA and Staging environments.
--   **Data Refresh:** The test data in the QA and Staging environments will be refreshed on a regular basis (e.g., weekly or bi-weekly) to ensure that the test environment remains representative of the production environment. The refresh process will be automated.
--   **Data Seeding:** For automated tests, a set of well-known test data will be seeded into the database before the tests are run. This will ensure that the tests are deterministic and repeatable. The seeding process will be part of the CI/CD pipeline.
+- **Data Generation:** Realistic test data will be created using a combination of synthetic data generation tools and sanitized production data. For performance testing, data generation scripts will be used to create large volumes of data that mimic production data distribution.
+- **Data Sanitization:** Production data will be anonymized before being used in test environments. This process will involve scrubbing all personally identifiable information (PII) and other sensitive data. A dedicated ETL process will be created to extract, sanitize, and load production data into the QA and Staging environments.
+- **Data Refresh:** The test data in the QA and Staging environments will be refreshed on a regular basis (e.g., weekly or bi-weekly) to ensure that the test environment remains representative of the production environment. The refresh process will be automated.
+- **Data Seeding:** For automated tests, a set of well-known test data will be seeded into the database before the tests are run. This will ensure that the tests are deterministic and repeatable. The seeding process will be part of the CI/CD pipeline.
 
 Test Automation Framework
 -------------------------
@@ -227,15 +231,22 @@ Test Automation Framework
 Automation is vital for fast feedback and reliability. Each test layer
 uses appropriate tools:
 
-| Test Level | Example Tools | Notes |
-|---|---|---|
-| Unit | xUnit/NUnit for C#, Jest for Angular, Mocha/Chai | Run on each commit; high code coverage; run in isolated containers |
-| Integration | Postman/Newman, REST‑assured | Use real databases and simulate message queues; seed test data |
-| Functional / UI | Cypress, Selenium, Playwright | Automate user flows across the Angular front‑end and APIs; run nightly or pre‑release |
-| E2E | Cypress, Selenium with BDD frameworks like Cucumber | Cover critical user journeys end to end; limited number due to cost |
-| Performance | JMeter, k6, Locust | Simulate concurrent users, orders and vendor interactions; record response times, throughput and resource usage |
-| Security | OWASP ZAP, Burp Suite, Snyk, SonarQube | Integrated into CI pipeline for scans; periodic penetration tests; track vulnerability backlog |
-| Accessibility | aXe, Lighthouse, WAVE, Pa11y | Automated scanning; integrate into CI; manual keyboard and screen reader testing in QA |
+| Stack                | Scope / Test Type               | Example Tools                                                                 | Notes                                                                                                       |
+| -------------------- | ------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ASP.NET (C#)         | Unit Testing                    | xUnit.net, NUnit                                                              | Execute on each commit; leverage `.NET` test runners and `WebApplicationFactory` for isolated server tests. |
+| ASP.NET (C#)         | Integration & API Testing       | Postman/Newman, Selenium (server-side smoke)                                  | Postman/Newman exercise REST APIs; Selenium supports smoke tests for server-rendered flows.                 |
+| ASP.NET (C#)         | Performance & Load              | JMeter, k6, Locust, Azure Load Testing, Visual Studio Performance Diagnostics | Drive API load, measure latency/throughput, capture server resource metrics.                                |
+| ASP.NET (C#)         | Code Styling & Linting          | .NET Analyzers, StyleCop, ReSharper                                           | Enforce language conventions and highlight refactoring opportunities in CI and IDE.                         |
+| ASP.NET (C#)         | Security & Dependency Scans     | SonarQube, OWASP ZAP, Snyk                                                    | SonarQube covers SAST; ZAP performs DAST against deployed APIs; Snyk audits NuGet dependencies.             |
+| ASP.NET (C#)         | Spell Checking & Docs           | LanguageTool, Code Spell Checker (VS Code)                                    | Guard against typos in C# code comments and documentation.                                                  |
+| Angular (TypeScript) | Unit Testing                    | Jest, Mocha                                                                   | Run via `ng test`; provide fast feedback on components/services.                                            |
+| Angular (TypeScript) | Component / Integration Testing | Cypress Component Testing, Playwright Test                                    | Validate component logic with DOM rendering and network mocks.                                              |
+| Angular (TypeScript) | System Journeys (E2E)           | Cypress E2E, Selenium + Cucumber                                              | Cover checkout, returns and admin flows end-to-end across browsers.                                         |
+| Angular (TypeScript) | Accessibility & Cross-browser   | aXe, Lighthouse, WAVE, Pa11y, Accessibility Insights for Web, BrowserStack    | Automate WCAG audits; verify assistive tech and browser/device coverage.                                    |
+| Angular (TypeScript) | Performance & Bundle Analysis   | Lighthouse Performance, Webpack Bundle Analyzer                               | Track Core Web Vitals and detect bundle regressions.                                                        |
+| Angular (TypeScript) | Code Styling & Linting          | ESLint, Prettier                                                              | Enforce lint rules and consistent formatting via CI hooks.                                                  |
+| Angular (TypeScript) | Security & Dependency Scans     | Snyk, OWASP ZAP, Trivy                                                        | Scan npm dependencies, run DAST against SPA endpoints, scan container images.                               |
+| Angular (TypeScript) | Spell Checking & Content QA     | cspell, Code Spell Checker (VS Code)                                          | Catch spelling issues in templates, copy and documentation.                                                 |
 
 CI pipelines must run unit and integration tests on each pull request;
 functional, E2E and non‑functional tests run nightly or before major
@@ -246,17 +257,17 @@ Metrics and Reporting
 
 Measuring test effectiveness helps improve quality. Key metrics include:
 
--   **Test coverage:** percentage of code exercised by automated tests.
--   **Pass/fail rates:** number of tests passing or failing per build.
--   **Defect leakage:** defects found in later stages (e.g. production)
+- **Test coverage:** percentage of code exercised by automated tests.
+- **Pass/fail rates:** number of tests passing or failing per build.
+- **Defect leakage:** defects found in later stages (e.g. production)
     that should have been caught earlier.
--   **Mean time to detect (MTTD) & mean time to resolve (MTTR):**
+- **Mean time to detect (MTTD) & mean time to resolve (MTTR):**
     tracked through DORA metrics.
--   **Performance indicators:** response times, throughput, error rates
+- **Performance indicators:** response times, throughput, error rates
     from performance tests.
--   **Security vulnerability counts:** number and severity of issues
+- **Security vulnerability counts:** number and severity of issues
     detected in scans.
--   **Accessibility compliance score:** percentage of pages passing
+- **Accessibility compliance score:** percentage of pages passing
     automated accessibility checks.
 
 Test results and metrics are published to dashboards accessible to the
@@ -266,16 +277,16 @@ initiatives.
 Roles and Responsibilities
 --------------------------
 
--   **Developers** write unit tests, assist with integration tests and
+- **Developers** write unit tests, assist with integration tests and
     fix defects.
--   **QA engineers** design and maintain integration, functional, E2E,
+- **QA engineers** design and maintain integration, functional, E2E,
     performance and accessibility tests; manage test environments;
     perform exploratory testing.
--   **Security analysts** conduct penetration tests, review
+- **Security analysts** conduct penetration tests, review
     vulnerabilities and ensure compliance with security requirements.
--   **Accessibility specialists** guide compliance with WCAG and assist
+- **Accessibility specialists** guide compliance with WCAG and assist
     with manual testing.
--   **Product owners and business analysts** define acceptance criteria
+- **Product owners and business analysts** define acceptance criteria
     and participate in acceptance testing.
 
 Test Schedule and Release Readiness
@@ -287,11 +298,11 @@ least nightly and before any production release. Performance, security
 and accessibility tests run at defined checkpoints (e.g. before major
 milestones or once per iteration). A release cannot proceed unless:
 
-1.  All critical unit, integration, functional and E2E tests pass.
-2.  Performance tests meet or exceed non‑functional requirements.
-3.  Security scans show no high‑severity vulnerabilities and
+1. All critical unit, integration, functional and E2E tests pass.
+2. Performance tests meet or exceed non‑functional requirements.
+3. Security scans show no high‑severity vulnerabilities and
     medium‑severity issues have remediation plans.
-4.  Accessibility checks report no critical issues.
+4. Accessibility checks report no critical issues.
 
 Conclusion
 ----------
@@ -304,3 +315,18 @@ maintainable test suites. Integrating performance, security and
 accessibility testing into the development life‑cycle, supported by
 automation and clear metrics, helps deliver a high‑quality solution that
 meets customer expectations and regulatory obligations.
+
+## Final Tooling Decision
+
+| Category | Chosen Tool | Rationale |
+|---|---|---|
+| **ASP.NET (C#) Unit Testing** | xUnit.net | A modern, popular, and community-driven unit testing framework for .NET. It's highly extensible and integrates seamlessly with the .NET CLI and GitHub Actions. |
+| **ASP.NET (C#) API Testing** | Postman/Newman | The industry standard for API development and testing. Newman allows running Postman collections from the command line, making it ideal for automated API testing in CI/CD. |
+| **ASP.NET (C#) Performance & Load** | k6 | A modern, developer-centric load testing tool with tests written in JavaScript. It's easy to integrate into CI/CD pipelines and provides excellent performance. |
+| **ASP.NET (C#) Code Styling** | .NET Analyzers | Built into the .NET SDK, they provide the official and most integrated way to enforce code style and quality rules during development and in the CI pipeline. |
+| **Angular (TypeScript) Unit Testing** | Vitest | A blazing fast unit test framework with a Jest-compatible API. Its speed and integration with modern JS tooling provide a great developer experience. |
+| **Angular (TypeScript) E2E, Component & Accessibility Testing** | Playwright | A modern and powerful framework from Microsoft for reliable end-to-end, component, and accessibility testing (with `axe-core`) across all modern browsers. Its unified API simplifies the testing stack. |
+| **Angular (TypeScript) Performance** | Lighthouse | The industry standard for auditing web page quality and performance. It provides actionable insights into Core Web Vitals and can be easily run in CI. |
+| **Angular (TypeScript) Code Styling** | ESLint & Prettier | The de-facto standard for linting and code formatting in the TypeScript ecosystem. They work together to enforce consistent code style and catch potential errors early. |
+| **Cross-Stack Security** | Snyk | Using a single, popular, developer-first security platform for both the frontend and backend simplifies security management, provides a unified view of vulnerabilities, and streamlines fixing them. |
+| **Cross-Stack Spell Checking** | cspell | A command-line tool that can be used to spell check code and documentation across the entire project, ensuring consistency and professionalism in CI pipelines.|
