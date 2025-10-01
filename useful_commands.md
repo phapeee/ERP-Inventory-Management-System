@@ -28,3 +28,7 @@ dotnet new apicontroller \
 
 docker run -d -p 8080:8080 plantuml/plantuml-server:jetty
 docker run -d -p 8080:8080 plantuml/plantuml-server:tomcat
+
+## Run Newman test, ensure load .env.development
+
+newman run "$POSTMAN_TEST_COLLECTION_URL$?apikey=$POSTMAN_API_KEY"
