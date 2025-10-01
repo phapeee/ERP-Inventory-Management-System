@@ -1,0 +1,67 @@
+@startuml PineConePro_ERPIMS_C3_AnalyticsModule
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(owner, "Owner / GM", "Reviews executive dashboards, KPIs")
+Person(opsManager, "Operations Manager", "Monitors operational KPIs, alerts")
+Person(purchasingLead, "Purchasing Lead", "Tracks vendor performance, stock health")
+Person(accountant, "Accountant", "Monitors financial KPIs, compliance")
+
+Container_Boundary(analyticsBoundary, "Analytics & Alerting Module") {
+  Component(analyticsController, "AnalyticsController", "ASP.NET Core", "REST endpoints for dashboards, reports, alert configuration")
+  Component(analyticsAppService, "AnalyticsApplicationService", "Application layer", "Coordinates query execution, alert rules, subscriptions")
+  Component(metricIngestor, "Metric Ingestor", "Stream processor", "Consumes domain events, computes rolling metrics")
+  Component(kpiEngine, "KPI Engine", "Aggregation service", "Calculates SLA adherence, inventory accuracy, order latency, vendor scorecards")
+  Component(alertPolicy, "Alert Policy Engine", "Rules engine", "Evaluates thresholds, anomaly detection, schedule windows")
+  Component(alertDispatcher, "Alert Dispatcher", "Workflow service", "Routes alerts to channels (email, SMS, Teams)")
+  Component(analyticsReadModel, "Analytics Read Store", "CQRS read store", "Pre-aggregated metrics, dashboards, historical trends")
+  Component(analyticsRepository, "AnalyticsRepository", "EF Core / Dapper", "Persists alert definitions, subscriptions")
+  Component(eventConsumer, "AnalyticsEventConsumer", "Event processor", "Subscribes to domain events, normalizes payloads")
+  Component(dataWarehouse, "Operational Data Store", "Synapse / SQLDW", "Time-series storage for analytics, near-real-time aggregates")
+  Component(reportExporter, "Report Exporter", "Background worker", "Generates scheduled PDF/CSV reports")
+  Component(observabilityBridge, "Observability Bridge", "Integration", "Feeds metrics to Azure Monitor/App Insights for unified telemetry")
+  Component(mlHook, "Anomaly Detection Hook", "Integration", "Pluggable ML service for advanced forecasting/anomaly detection")
+}
+
+ContainerDb(sqlDb, "Operational Database", "Azure SQL", "Stores alert configs, user prefs")
+Container(dataLake, "Analytics Data Lake", "Azure Data Lake Storage", "Raw event archives, historical snapshots")
+Container(queue, "Azure Service Bus", "Topics/Queues", "Domain events stream, alert jobs")
+System_Ext(eventBus, "Event Stream", "Domain events from modules via Service Bus")
+System_Ext(observability, "Observability Stack", "Azure Monitor/App Insights/Grafana")
+System_Ext(notificationService, "Notification Service", "Email/SMS/Teams dispatcher")
+System_Ext(biTool, "External BI Tool", "Power BI / Tableau for ad-hoc analysis")
+System_Ext(ciCd, "CI/CD Pipeline", "Deploys analytics jobs, monitors quality")
+
+Rel(owner, analyticsController, "View executive dashboards")
+Rel(opsManager, analyticsController, "Monitor operations, configure alerts")
+Rel(purchasingLead, analyticsController, "Review vendor KPIs")
+Rel(accountant, analyticsController, "Track finance KPIs, compliance")
+
+Rel(analyticsController, analyticsAppService, "Invoke analytic queries, manage alerts")
+Rel(analyticsAppService, analyticsRepository, "CRUD alert definitions")
+Rel(analyticsRepository, sqlDb, "Persist definitions, subscriptions")
+Rel(analyticsAppService, analyticsReadModel, "Query dashboards, trend data")
+Rel(analyticsReadModel, dataWarehouse, "Read aggregated metrics")
+Rel(analyticsAppService, reportExporter, "Schedule exports")
+Rel(reportExporter, dataWarehouse, "Fetch data for reports")
+Rel(reportExporter, notificationService, "Send reports")
+
+Rel(eventBus, eventConsumer, "Domain events feed")
+Rel(eventConsumer, dataLake, "Persist raw events")
+Rel(eventConsumer, metricIngestor, "Normalize payloads")
+Rel(metricIngestor, kpiEngine, "Feed metrics")
+Rel(kpiEngine, analyticsReadModel, "Update aggregates")
+Rel(kpiEngine, alertPolicy, "Provide KPIs for evaluation")
+Rel(alertPolicy, alertDispatcher, "Trigger alerts")
+Rel(alertDispatcher, notificationService, "Send alerts")
+Rel(alertPolicy, queue, "Enqueue alert jobs")
+Rel(queue, alertDispatcher, "Process alert jobs")
+Rel(metricIngestor, mlHook, "Invoke anomaly detection")
+Rel(mlHook, alertPolicy, "Return anomalies")
+Rel(analyticsReadModel, observabilityBridge, "Expose metrics to Monitoring")
+Rel(observabilityBridge, observability, "Publish metrics, dashboards")
+Rel(analyticsAppService, biTool, "Expose datasets / APIs")
+Rel(ciCd, analyticsBoundary, "Deploy analytics jobs & configs")
+
+@enduml

@@ -1,0 +1,66 @@
+@startuml PineConePro_ERPIMS_C3_Forecasting
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(purchasingLead, "Purchasing Lead", "Reviews forecast suggestions, overrides EOQ")
+Person(owner, "Owner / GM", "Monitors demand forecast accuracy")
+
+Container_Boundary(forecastBoundary, "Demand Forecasting & EOQ Module") {
+  Component(forecastController, "ForecastController", "ASP.NET Core", "REST endpoints for running forecasts, reviewing recommendations, what-if scenarios")
+  Component(forecastAppService, "ForecastApplicationService", "Application layer", "Coordinates data aggregation, algorithm execution, override workflows")
+  Component(datasetBuilder, "DatasetBuilder", "Data prep service", "Enriches historical sales, seasonality, promotions, lead times")
+  Component(mlOrchestrator, "ML Orchestrator", "Workflow", "Invokes ML models, feature pipelines, retraining jobs")
+  Component(forecastModel, "ForecastModel", "Domain model", "Stores forecast series, confidence intervals, metadata")
+  Component(eoqCalculator, "EOQCalculator", "Domain service", "Computes EOQ, reorder points, safety stock per SKU/location")
+  Component(simulationEngine, "WhatIfSimulationEngine", "Domain service", "Runs parameterized scenarios for planners")
+  Component(overridePolicy, "OverridePolicy", "Domain policy", "Applies governance to planner adjustments, approval thresholds")
+  Component(forecastRepository, "ForecastRepository", "EF Core repository", "Persists forecasts, EOQ suggestions, overrides")
+  Component(forecastReadModel, "ForecastReadModel", "CQRS read store", "Dashboards & exports for forecasts vs actuals")
+  Component(backgroundScheduler, "ForecastScheduler", "Worker", "Schedules nightly/weekly forecast runs, retraining")
+  Component(integrationPublisher, "ReplenishmentPublisher", "Event dispatcher", "Publishes reorder recommendations to Purchasing")
+  Component(mlServiceClient, "MLServiceClient", "Adapter", "Calls Azure ML / internal model endpoints")
+}
+
+ContainerDb(dataWarehouse, "Analytics Warehouse", "Synapse/DataMart", "Historical sales, promotions, inventory snapshots")
+Container(cache, "Redis Cache", "Azure Cache", "Stores recent forecast results, overrides")
+Container(queue, "Azure Service Bus", "Topics/Queues", "Forecast events, job scheduling")
+System_Ext(orderModule, "Order Module", "Provides historical demand, open orders")
+System_Ext(inventoryModule, "Inventory Module", "Provides stock, lead times, cycle counts")
+System_Ext(purchModule, "Purchasing Module", "Consumes EOQ recommendations, approvals")
+System_Ext(analyticsModule, "Analytics Module", "Consumes forecast accuracy metrics")
+System_Ext(promoModule, "Promotion Engine", "Supplies promo calendars")
+System_Ext(mlPlatform, "Azure ML Workspace", "Model training & scoring")
+System_Ext(observability, "Observability Stack", "Metrics, alerts")
+
+Rel(purchasingLead, forecastController, "Review recommendations, overrides")
+Rel(owner, forecastController, "Monitor accuracy dashboards")
+
+Rel(forecastController, forecastAppService, "Execute workflows")
+Rel(forecastAppService, datasetBuilder, "Build feature set")
+Rel(datasetBuilder, dataWarehouse, "Query historical data")
+Rel(datasetBuilder, orderModule, "Fetch order history")
+Rel(datasetBuilder, inventoryModule, "Get inventory metrics")
+Rel(datasetBuilder, promoModule, "Pull promo calendar")
+Rel(forecastAppService, mlOrchestrator, "Run forecast job")
+Rel(mlOrchestrator, mlServiceClient, "Invoke model")
+Rel(mlServiceClient, mlPlatform, "Score forecasts")
+Rel(mlOrchestrator, forecastModel, "Persist results")
+Rel(forecastModel, forecastRepository, "Store forecasts")
+Rel(forecastRepository, cache, "Cache latest runs")
+Rel(forecastRepository, forecastReadModel, "Project dashboards")
+Rel(forecastAppService, eoqCalculator, "Compute EOQ")
+Rel(eoqCalculator, forecastRepository, "Store EOQ suggestions")
+Rel(forecastAppService, simulationEngine, "Run what-if scenarios")
+Rel(simulationEngine, forecastReadModel, "Provide outputs")
+Rel(forecastAppService, overridePolicy, "Apply override governance")
+Rel(forecastRepository, forecastReadModel, "Refresh read store")
+Rel(backgroundScheduler, forecastAppService, "Trigger scheduled runs")
+Rel(backgroundScheduler, queue, "Queue retraining jobs")
+Rel(queue, backgroundScheduler, "Process results callbacks")
+Rel(integrationPublisher, queue, "Publish ReorderSuggested events")
+Rel(queue, purchModule, "Deliver recommendations")
+Rel(forecastAppService, analyticsModule, "Send accuracy metrics")
+Rel(forecastAppService, observability, "Emit telemetry")
+
+@enduml

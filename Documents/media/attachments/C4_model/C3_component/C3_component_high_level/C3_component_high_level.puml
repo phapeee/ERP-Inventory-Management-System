@@ -1,0 +1,101 @@
+@startuml PineConePro_ERPIMS_C3_HighLevel
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(itAdmin, "IT Admin", "Manages configuration, RBAC, deployments")
+Person(csr, "Customer Service Rep", "Handles orders, RMAs")
+Person(warehouseAssoc, "Warehouse Associate", "Executes RF-driven tasks")
+Person(purchasingLead, "Purchasing Lead", "Plans replenishment, approves POs")
+Person(accountant, "Accountant", "Posts journals, runs tax reports")
+
+Container_Boundary(appBoundary, "ERP Modular Monolith API") {
+  Component(restApi, "API Gateway Controllers", "ASP.NET Core", "REST/GraphQL endpoints consumed by SPA, RF clients, external partners")
+  Component(authz, "Identity & RBAC Filter", "ASP.NET middleware", "Validates Entra ID tokens, enforces RBAC policies per module")
+  Component(eventHub, "In-Process Event Bus", "MediatR / custom bus", "Publish-subscribe messaging between modules")
+
+  Component(productModule, "Product Information Module", "DDD module", "SKU master data, kit BOMs, hazardous attributes")
+  Component(inventoryModule, "Inventory & Warehouse Module", "DDD module", "Bin-level stock, RF ops, lot/serial control")
+  Component(orderModule, "Orders & Fulfillment Module", "DDD module", "Omnichannel order capture, allocation, SLA tracking")
+  Component(purchModule, "Purchasing & Vendor Module", "DDD module", "Requisitions, PO workflow, vendor scorecards")
+  Component(shippingModule, "Shipping & Hazmat Module", "DDD module", "Rate shopping, label creation, hazmat docs")
+  Component(taxModule, "Tax & Accounting Module", "DDD module", "Sales tax calc, journal generation, GL sync")
+  Component(returnsModule, "Returns & RMA Module", "DDD module", "RMA lifecycle, disposition handling")
+  Component(analyticsModule, "Analytics & Alerting Module", "CQRS read models", "KPI aggregation, alert thresholds, dashboards")
+
+  Component(integrationLayer, "Integration Adapter Layer", "Adapter services", "Payment, tax, carrier, accounting, 3PL connectors")
+  Component(backgroundJobs, "Workflow & Batch Workers", "Hangfire / Azure WebJobs", "Reorder planning, sync, scheduled exports")
+  Component(persistence, "Persistence Layer", "EF Core + repositories", "Schema-per-module data access, caching policies")
+}
+
+ContainerDb(sqlDb, "Operational Database", "Azure SQL", "Transactional data store")
+Container(cache, "Redis Cache", "Azure Cache for Redis", "Low-latency reads, session caching")
+Container(queue, "Event Bus", "Azure Service Bus", "Asynchronous integration messages")
+Container(blob, "Document Store", "Azure Blob Storage", "Hazmat docs, attachments, exports")
+System_Ext(paymentGateway, "Payment Gateway", "Third-party payments & fraud")
+System_Ext(taxService, "Tax Service", "Sales tax calculation/filings")
+System_Ext(carriers, "Carrier APIs", "Shipping rates, labels, tracking")
+System_Ext(accountingSystem, "Accounting System", "GL/AP/AR platform")
+System_Ext(threePL, "3PL Provider", "Warehouse partner integration")
+System_Ext(observability, "Observability Stack", "Azure Monitor/App Insights")
+
+Rel(csr, restApi, "Invoke customer workflows")
+Rel(warehouseAssoc, restApi, "RF API calls via SPA")
+Rel(purchasingLead, restApi, "Manage purchasing")
+Rel(accountant, restApi, "Financial ops")
+Rel(itAdmin, authz, "Manages policies")
+
+Rel(restApi, authz, "Authenticate & authorize")
+Rel(authz, productModule, "Permit/deny module access")
+Rel(authz, inventoryModule, "")
+Rel(authz, orderModule, "")
+Rel(authz, purchModule, "")
+Rel(authz, shippingModule, "")
+Rel(authz, taxModule, "")
+Rel(authz, returnsModule, "")
+Rel(authz, analyticsModule, "")
+
+Rel(restApi, productModule, "CRUD operations")
+Rel(restApi, inventoryModule, "RF workflows, stock queries")
+Rel(restApi, orderModule, "Order capture, status updates")
+Rel(restApi, purchModule, "Requisitions, approvals")
+Rel(restApi, shippingModule, "Shipping orchestration")
+Rel(restApi, taxModule, "Tax inquiries, postings")
+Rel(restApi, returnsModule, "RMA processing")
+Rel(restApi, analyticsModule, "Dashboard queries")
+
+Rel(productModule, eventHub, "Publish/subscribe events")
+Rel(inventoryModule, eventHub, "")
+Rel(orderModule, eventHub, "")
+Rel(purchModule, eventHub, "")
+Rel(shippingModule, eventHub, "")
+Rel(taxModule, eventHub, "")
+Rel(returnsModule, eventHub, "")
+Rel(analyticsModule, eventHub, "Consume domain events")
+Rel(eventHub, integrationLayer, "Forward integration events")
+
+Rel(integrationLayer, paymentGateway, "Authorize, capture, refund")
+Rel(integrationLayer, taxService, "Compute/commit tax")
+Rel(integrationLayer, carriers, "Rates, labels, tracking")
+Rel(integrationLayer, accountingSystem, "Post journals, invoices")
+Rel(integrationLayer, threePL, "Sync shipments & inventory")
+Rel(integrationLayer, queue, "Publish outbound messages")
+Rel(queue, integrationLayer, "Inbound async processing")
+
+Rel(backgroundJobs, eventHub, "Schedule long-running workflows")
+Rel(backgroundJobs, integrationLayer, "Trigger sync jobs")
+Rel(backgroundJobs, persistence, "Bulk data operations")
+
+Rel(persistence, sqlDb, "ORM queries, stored procs")
+Rel(persistence, cache, "Lookup caches, invalidation")
+Rel(persistence, blob, "Store/retrieve documents")
+Rel(eventHub, queue, "Bridge to external bus")
+Rel(orderModule, integrationLayer, "Invoke payment, carrier adapters")
+Rel(shippingModule, blob, "Upload hazmat docs")
+Rel(taxModule, accountingSystem, "GL sync via adapter")
+Rel(analyticsModule, observability, "Emit KPIs, alerts")
+Rel(backgroundJobs, observability, "Job telemetry")
+Rel(restApi, observability, "Request telemetry")
+Rel(authz, observability, "Security audit logs")
+
+@enduml

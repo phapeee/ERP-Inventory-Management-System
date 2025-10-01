@@ -1,0 +1,58 @@
+@startuml PineConePro_ERPIMS_C3_LightManufacturing
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(opsManager, "Operations Manager", "Plans assemblies & disassemblies")
+Person(warehouseLead, "Warehouse Lead", "Executes kitting work orders")
+
+Container_Boundary(mfgBoundary, "Light Manufacturing & Kitting Module") {
+  Component(mfgController, "ManufacturingController", "ASP.NET Core", "Create work orders, manage BOM versions, report production")
+  Component(mfgAppService, "ManufacturingApplicationService", "Application layer", "Coordinates kitting workflows, BOM versioning, labor capture")
+  Component(workOrderScheduler, "WorkOrderScheduler", "Workflow", "Generates work orders from demand, handles reservations")
+  Component(bomVersionService, "BomVersionService", "Domain service", "Manages BOM revisions, effectivity dates, approvals")
+  Component(workOrderAggregate, "WorkOrderAggregate", "Domain model", "Tracks assembly/disassembly status, labor, scrap")
+  Component(bomAggregate, "BomAggregate", "Domain model", "Defines components, yields, effectivity")
+  Component(backflushPolicy, "BackflushPolicy", "Domain policy", "Determines component consumption/overrides")
+  Component(costingService, "CostingService", "Domain service", "Calculates component and labor cost rollups")
+  Component(mfgRepository, "ManufacturingRepository", "EF Core repository", "Persists work orders, BOM versions, routings")
+  Component(mfgReadModel, "ManufacturingReadModel", "CQRS read store", "Provides dashboards for WIP, throughput, scrap")
+  Component(mfgEventPublisher, "ManufacturingEventPublisher", "Event dispatcher", "Publishes kit-assembled, kit-disassembled events")
+  Component(laborCaptureClient, "LaborCaptureClient", "Adapter", "Collects labor data from time tracking devices")
+}
+
+ContainerDb(sqlDb, "Operational Database", "Azure SQL", "Manufacturing schema")
+Container(queue, "Azure Service Bus", "Topics/Queues", "Manufacturing events")
+System_Ext(orderModule, "Order Module", "Provides demand signals for kits")
+System_Ext(inventoryModule, "Inventory Module", "Consumes component usage, updates finished goods")
+System_Ext(productModule, "Product Module", "Provides BOM definitions, kit metadata")
+System_Ext(analyticsModule, "Analytics Module", "Receives throughput & scrap metrics")
+System_Ext(purchModule, "Purchasing Module", "Receives component shortages")
+System_Ext(observability, "Observability Stack", "Telemetry")
+
+Rel(opsManager, mfgController, "Plan work orders")
+Rel(warehouseLead, mfgController, "Report completion")
+
+Rel(mfgController, mfgAppService, "Execute workflow")
+Rel(mfgAppService, workOrderScheduler, "Generate work orders")
+Rel(workOrderScheduler, orderModule, "Consume demand")
+Rel(workOrderScheduler, inventoryModule, "Check availability")
+Rel(mfgAppService, bomVersionService, "Manage BOM versions")
+Rel(mfgAppService, workOrderAggregate, "Update work order state")
+Rel(mfgAppService, bomAggregate, "Mutate BOM definitions")
+Rel(mfgAppService, backflushPolicy, "Apply consumption rules")
+Rel(mfgAppService, costingService, "Roll up cost")
+Rel(workOrderAggregate, mfgRepository, "Persist")
+Rel(bomAggregate, mfgRepository, "Persist")
+Rel(mfgRepository, mfgReadModel, "Project dashboards")
+Rel(mfgAppService, laborCaptureClient, "Capture labor")
+Rel(mfgAppService, mfgEventPublisher, "Publish events")
+Rel(mfgEventPublisher, queue, "Emit kit-assembled/disassembled")
+Rel(queue, inventoryModule, "Update inventory adjustments")
+Rel(queue, orderModule, "Notify order availability")
+Rel(queue, analyticsModule, "Provide metrics")
+Rel(mfgAppService, purchModule, "Notify component shortages")
+Rel(mfgAppService, productModule, "Sync BOM master data")
+Rel(mfgAppService, observability, "Emit telemetry")
+
+@enduml

@@ -1,0 +1,66 @@
+@startuml PineConePro_ERPIMS_C3_Promotions
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(ecomManager, "E-Commerce Manager", "Configures campaigns, contract pricing")
+Person(csr, "Customer Service Rep", "Applies promotions during orders")
+Person(salesManager, "Sales Manager", "Approves contract pricing tiers")
+
+Container_Boundary(promoBoundary, "Promotion Engine & Contract Pricing Module") {
+  Component(promoController, "PromotionController", "ASP.NET Core", "REST APIs to create promotions, coupons, qualification rules")
+  Component(contractController, "ContractPricingController", "ASP.NET Core", "Manage B2B price lists, approval workflows")
+  Component(promoAppService, "PromotionApplicationService", "Application layer", "Handles rule compilation, scheduling, stacking logic")
+  Component(contractAppService, "ContractPricingService", "Application layer", "Manages contract tiers, approvals, expirations")
+  Component(ruleCompiler, "RuleCompiler", "Domain service", "Transforms promo expressions into executable rules")
+  Component(stackPolicy, "StackingPolicy", "Domain policy", "Determines stacking/exclusivity across promotions")
+  Component(eligibilityEngine, "EligibilityEngine", "Domain service", "Evaluates customer/product/channel eligibility")
+  Component(contractPolicy, "ContractPolicy", "Domain policy", "Validates approvals, overrides, tier transitions")
+  Component(promoAggregate, "PromotionAggregate", "Domain model", "Tracks campaign lifecycle, limits, usage")
+  Component(contractAggregate, "ContractPriceAggregate", "Domain model", "Maintains negotiated price tiers, audit trail")
+  Component(promoRepository, "PromotionRepository", "EF Core repository", "Persists promotions, coupons, contract pricing")
+  Component(promoReadModel, "PromotionReadModel", "CQRS read store", "Optimized for order engine lookups")
+  Component(scheduler, "PromotionScheduler", "Background worker", "Activates/deactivates promotions, sends reminders")
+  Component(integrationPublisher, "PromotionEventPublisher", "Event dispatcher", "Publishes promo-assigned, contract-updated events")
+}
+
+ContainerDb(sqlDb, "Operational Database", "Azure SQL", "Promotion & contract schemas")
+Container(cache, "Redis Cache", "Azure Cache", "Caches compiled rules, price lists")
+Container(queue, "Azure Service Bus", "Topics/Queues", "Promotion events, reminders")
+System_Ext(orderModule, "Order Module", "Consumes rules during pricing")
+System_Ext(productModule, "Product Module", "Provides product attributes")
+System_Ext(customerModule, "Customer Service Console", "Displays applicable promotions")
+System_Ext(analyticsModule, "Analytics Module", "Receives promotion performance metrics")
+System_Ext(emailService, "Notification Service", "Sends campaign alerts")
+System_Ext(observability, "Observability Stack", "Logs, metrics")
+
+Rel(ecomManager, promoController, "Create/activate promotions")
+Rel(salesManager, contractController, "Approve contract tiers")
+Rel(csr, contractController, "Lookup customer pricing")
+
+Rel(promoController, promoAppService, "Invoke")
+Rel(contractController, contractAppService, "Invoke")
+Rel(promoAppService, ruleCompiler, "Compile rules")
+Rel(promoAppService, stackPolicy, "Apply stacking rules")
+Rel(promoAppService, eligibilityEngine, "Check eligibility")
+Rel(contractAppService, contractPolicy, "Enforce approvals")
+Rel(promoAppService, promoAggregate, "Mutate promo state")
+Rel(contractAppService, contractAggregate, "Mutate contract state")
+Rel(promoAggregate, promoRepository, "Persist")
+Rel(contractAggregate, promoRepository, "Persist")
+Rel(promoRepository, promoReadModel, "Project lookup tables")
+Rel(promoRepository, cache, "Warm caches")
+Rel(promoReadModel, cache, "Serve compiled rules")
+Rel(promoAppService, integrationPublisher, "Publish promo events")
+Rel(contractAppService, integrationPublisher, "Publish pricing events")
+Rel(integrationPublisher, queue, "Emit events")
+Rel(queue, orderModule, "Notify rule changes")
+Rel(queue, customerModule, "Notify applicable promos")
+Rel(scheduler, queue, "Enqueue reminders")
+Rel(queue, emailService, "Send campaign emails")
+Rel(promoAppService, analyticsModule, "Push performance metrics")
+Rel(promoAppService, productModule, "Fetch attributes")
+Rel(promoAppService, orderModule, "Serve pricing context")
+Rel(promoAppService, observability, "Emit telemetry")
+
+@enduml

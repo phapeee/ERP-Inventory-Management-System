@@ -1,0 +1,75 @@
+@startuml PineConePro_ERPIMS_C3_Integrations
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(integrationLead, "Integration Lead", "Monitors partner connections, handles exceptions")
+Person(warehouseLead, "Warehouse Lead", "Reviews 3PL inventory and shipment statuses")
+Person(purchasingLead, "Purchasing Lead", "Manages EDI vendor communications")
+
+Container_Boundary(intBoundary, "3PL & EDI Integration Module") {
+  Component(intController, "IntegrationAdminController", "ASP.NET Core", "Manage partner configs, resend docs, monitor queues")
+  Component(ediGateway, "EdiGateway", "Application layer", "Transforms purchase orders, ASNs, invoices to X12/EDIFACT and vice versa")
+  Component(ediTranslator, "EdiTranslator", "Domain service", "Maps internal canonical models to partner-specific schemas")
+  Component(ediEnvelopeService, "EdiEnvelopeService", "Domain service", "Handles interchange control numbers, acknowledgements")
+  Component(ediRepository, "EdiRepository", "EF Core repository", "Persists documents, statuses, errors")
+  Component(ediEventPublisher, "EdiEventPublisher", "Event dispatcher", "Publishes edi.message-sent/received events")
+  Component(ediErrorHandler, "EdiErrorHandler", "Workflow", "Retries, escalates failed transmissions")
+
+  Component(thirdPlConnector, "ThirdPartyLogisticsConnector", "Application layer", "REST/SFTP integration with 3PL partners")
+  Component(threePlAdapter, "3plAdapterFactory", "Adapter factory", "Resolves partner-specific adapters")
+  Component(inventorySyncService, "InventorySyncService", "Domain service", "Reconciles 3PL inventory vs ERP")
+  Component(shipmentStatusService, "ShipmentStatusService", "Domain service", "Processes 3PL shipment events")
+  Component(integrationRepository, "IntegrationRepository", "EF Core repository", "Stores 3PL transactions, API tokens")
+  Component(webhookServer, "IntegrationWebhookServer", "Listener", "Receives partner callbacks")
+  Component(fileTransferClient, "FileTransferClient", "Adapter", "SFTP/FTP transfers for bulk documents")
+  Component(apiClientFactory, "ApiClientFactory", "Adapter", "Creates REST clients per partner")
+}
+
+ContainerDb(sqlDb, "Integration Database", "Azure SQL", "EDI & 3PL tracking")
+Container(queue, "Azure Service Bus", "Topics/Queues", "Integration events, retries")
+Container(blob, "Blob Storage", "Azure Blob", "Archive EDI docs, labels")
+System_Ext(purchModule, "Purchasing Module", "Sends/receives PO/ASN invoices")
+System_Ext(orderModule, "Order Module", "Receives shipment updates")
+System_Ext(inventoryModule, "Inventory Module", "Receives stock sync from 3PL")
+System_Ext(shippingModule, "Shipping Module", "Consumes 3PL tracking")
+System_Ext(accountingModule, "Accounting Module", "Processes vendor invoices")
+System_Ext(ediPartners, "Vendor EDI Systems", "Trading partners")
+System_Ext(threePLPartners, "3PL Partners", "External warehouses")
+System_Ext(observability, "Observability Stack", "Logs, metrics")
+
+Rel(integrationLead, intController, "Configure, monitor")
+Rel(warehouseLead, intController, "Review 3PL status")
+Rel(purchasingLead, intController, "Manage vendor exchanges")
+
+Rel(intController, ediGateway, "Manage documents")
+Rel(ediGateway, ediTranslator, "Map to/from canonical")
+Rel(ediGateway, ediEnvelopeService, "Wrap interchange")
+Rel(ediGateway, fileTransferClient, "Send/receive files")
+Rel(ediGateway, ediRepository, "Persist docs")
+Rel(ediRepository, blob, "Archive originals")
+Rel(ediGateway, ediEventPublisher, "Publish events")
+Rel(ediEventPublisher, queue, "Emit messages")
+Rel(queue, purchModule, "Notify document results")
+Rel(queue, accountingModule, "Notify invoices")
+Rel(queue, inventoryModule, "Notify ASN receipts")
+Rel(ediErrorHandler, queue, "Schedule retries")
+Rel(ediErrorHandler, intController, "Surface alerts")
+Rel(ediGateway, ediPartners, "EDI transmissions")
+
+Rel(intController, thirdPlConnector, "Manage 3PL API configs")
+Rel(thirdPlConnector, apiClientFactory, "Invoke REST APIs")
+Rel(thirdPlConnector, fileTransferClient, "Exchange flat files")
+Rel(thirdPlConnector, webhookServer, "Receive callbacks")
+Rel(webhookServer, shipmentStatusService, "Process events")
+Rel(shipmentStatusService, orderModule, "Update shipment status")
+Rel(inventorySyncService, inventoryModule, "Sync inventory")
+Rel(inventorySyncService, thirdPlConnector, "Pull stock reports")
+Rel(thirdPlConnector, integrationRepository, "Persist transactions")
+Rel(integrationRepository, blob, "Archive attachments")
+Rel(thirdPlConnector, queue, "Publish 3pl.sync-started/completed")
+Rel(queue, shippingModule, "Share tracking updates")
+Rel(queue, analyticsModule, "Provide logistics KPIs")
+Rel(thirdPlConnector, observability, "Emit telemetry")
+
+@enduml

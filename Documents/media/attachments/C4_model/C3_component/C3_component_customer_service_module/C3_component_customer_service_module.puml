@@ -1,0 +1,60 @@
+@startuml PineConePro_ERPIMS_C3_CustomerService
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(csr, "Customer Service Rep", "Handles tickets, SLA timers, customer interactions")
+Person(customerLead, "Customer Support Lead", "Monitors SLA adherence, escalations")
+
+Container_Boundary(csBoundary, "Customer Service Console Module") {
+  Component(csController, "CustomerServiceController", "ASP.NET Core", "APIs for tickets, SLA updates, communication logs")
+  Component(csAppService, "CustomerServiceApplicationService", "Application layer", "Coordinates ticket lifecycle, context aggregation")
+  Component(ticketWorkflow, "TicketWorkflowEngine", "Workflow", "Manages statuses, escalations, SLA timers")
+  Component(contextAggregator, "CustomerContextAggregator", "Domain service", "Aggregates orders, returns, promotions, notes")
+  Component(slaPolicy, "SlaPolicy", "Domain policy", "Evaluates timers, breach rules, notifications")
+  Component(ticketAggregate, "TicketAggregate", "Domain model", "Tracks interactions, assignments, resolutions")
+  Component(noteService, "InteractionNoteService", "Domain service", "Stores structured communications")
+  Component(csRepository, "CustomerServiceRepository", "EF Core repository", "Persists tickets, notes, SLA metrics")
+  Component(csReadModel, "CustomerServiceReadModel", "CQRS read store", "Provides dashboards, queues, metrics")
+  Component(notificationsFacade, "NotificationFacade", "Adapter", "Routes alerts to email/SMS/chat")
+  Component(observabilityBridge, "SlaMetricsEmitter", "Telemetry", "Publishes SLA performance")
+}
+
+ContainerDb(sqlDb, "Customer Service DB", "Azure SQL", "Ticket & SLA schema")
+Container(cache, "Redis Cache", "Azure Cache", "Caches ticket queues, SLA timers")
+Container(queue, "Azure Service Bus", "Topics/Queues", "Ticket events, SLA breaches")
+System_Ext(orderModule, "Order Module", "Provides order history")
+System_Ext(returnsModule, "Returns Module", "Provides RMA status")
+System_Ext(promoModule, "Promotion Module", "Provides active promotions & contracts")
+System_Ext(shippingModule, "Shipping Module", "Provides shipment status")
+System_Ext(analyticsModule, "Analytics Module", "Receives SLA metrics")
+System_Ext(notificationService, "Notification Service", "Email/SMS/Chat")
+System_Ext(identityProvider, "Microsoft Entra ID", "SSO for CSRs")
+System_Ext(observability, "Observability Stack", "Logs, alerts")
+
+Rel(csr, csController, "Manage tickets")
+Rel(customerLead, csController, "Monitor queues")
+
+Rel(csController, csAppService, "Invoke workflow")
+Rel(csAppService, ticketWorkflow, "Drive ticket state")
+Rel(ticketWorkflow, slaPolicy, "Evaluate timers")
+Rel(ticketWorkflow, queue, "Publish SLA breach")
+Rel(queue, notificationsFacade, "Notify CSR/lead")
+Rel(csAppService, contextAggregator, "Build customer context")
+Rel(contextAggregator, orderModule, "Fetch orders")
+Rel(contextAggregator, returnsModule, "Fetch RMAs")
+Rel(contextAggregator, promoModule, "Fetch pricing notes")
+Rel(contextAggregator, shippingModule, "Fetch shipment status")
+Rel(csAppService, noteService, "Record notes")
+Rel(ticketAggregate, csRepository, "Persist")
+Rel(noteService, csRepository, "Persist")
+Rel(csRepository, csReadModel, "Project")
+Rel(csRepository, cache, "Warm ticket queues")
+Rel(csAppService, notificationsFacade, "Send customer communications")
+Rel(notificationsFacade, notificationService, "Deliver messages")
+Rel(csAppService, observabilityBridge, "Emit SLA metrics")
+Rel(observabilityBridge, analyticsModule, "Share SLA datasets")
+Rel(csAppService, observability, "Emit telemetry")
+Rel(csController, identityProvider, "Authenticate")
+
+@enduml
