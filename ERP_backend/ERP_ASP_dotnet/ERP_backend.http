@@ -1,6 +1,6 @@
-@ERP_backend_HostAddress = http://localhost:5055
+@ERP_backend_HostAddress = http://localhost:5000
 
-GET {{ERP_backend_HostAddress}}/weatherforecast/
+GET {{ERP_backend_HostAddress}}/api/products
 Accept: application/json
 
 ###
