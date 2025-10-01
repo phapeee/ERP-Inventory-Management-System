@@ -182,6 +182,10 @@ Accessibility tests are part of both unit (e.g. verifying ARIA
 attributes in components) and E2E test suites. Failures block promotion
 until resolved.
 
+### Spell Checking
+
+Spell checking is an important part of maintaining the quality of the codebase and documentation. It helps to catch typos and spelling errors in code comments, documentation, and user-facing strings. Automated spell checking can be integrated into the CI/CD pipeline to ensure that all committed code is free of spelling errors. Tools like `cspell` can be used to perform automated spell checking.
+
 ### Reliability and Resilience Testing
 
 -   **Chaos/Resilience tests** simulate failures of dependencies
@@ -233,9 +237,10 @@ uses appropriate tools:
 | Integration | Postman/Newman, REST‑assured | Use real databases and simulate message queues; seed test data |
 | Functional / UI | Cypress, Selenium, Playwright | Automate user flows across the Angular front‑end and APIs; run nightly or pre‑release |
 | E2E | Cypress, Selenium with BDD frameworks like Cucumber | Cover critical user journeys end to end; limited number due to cost |
-| Performance | JMeter, k6, Locust | Simulate concurrent users, orders and vendor interactions; record response times, throughput and resource usage |
+| Performance | JMeter, k6, Locust, Visual Studio Performance Diagnostics, Azure Load Testing, Webpack Bundle Analyzer | Simulate concurrent users, orders and vendor interactions; record response times, throughput and resource usage |
 | Security | OWASP ZAP, Burp Suite, Snyk, SonarQube | Integrated into CI pipeline for scans; periodic penetration tests; track vulnerability backlog |
-| Accessibility | aXe, Lighthouse, WAVE, Pa11y | Automated scanning; integrate into CI; manual keyboard and screen reader testing in QA |
+| Accessibility | aXe, Lighthouse, WAVE, Pa11y, Accessibility Insights for Web, BrowserStack | Automated scanning; integrate into CI; manual keyboard and screen reader testing in QA |
+| Spell Checking | cspell | Checks for spelling errors in code and documentation |
 
 CI pipelines must run unit and integration tests on each pull request;
 functional, E2E and non‑functional tests run nightly or before major
@@ -304,3 +309,28 @@ maintainable test suites. Integrating performance, security and
 accessibility testing into the development life‑cycle, supported by
 automation and clear metrics, helps deliver a high‑quality solution that
 meets customer expectations and regulatory obligations.
+
+
+# Automation Tools for CI/CD
+
+This document outlines the selected automation tools for the CI/CD pipeline, covering unit testing, integration testing, code styling and linting, security checks, and spell checking for both the ASP.NET (C#) backend and the Angular (TypeScript) frontend.
+
+## ASP.NET (C#) Tools
+
+| Test Type | Tools | Description |
+|---|---|---|
+| Unit Testing | xUnit.net, NUnit | **xUnit.net:** A modern, popular, and extensible testing framework for .NET.<br>**NUnit:** A widely-used, open-source unit testing framework for .NET. |
+| Integration Testing | Selenium, Postman | **Selenium:** For end-to-end UI testing of your web application.<br>**Postman:** For testing your RESTful APIs. |
+| Code Styling & Linting | .NET Analyzers, StyleCop, ReSharper | **.NET Analyzers:** The .NET SDK includes a set of built-in code analyzers that help you find and fix issues in your C# code.<br>**StyleCop:** A popular tool that enforces a consistent style for your C# code.<br>**ReSharper:** A popular commercial extension for Visual Studio that provides powerful code analysis and refactoring features. |
+| Security Checks | SonarQube, OWASP ZAP, Snyk | **SonarQube:** For static code analysis to find security vulnerabilities and code quality issues.<br>**OWASP ZAP:** For dynamic application security testing (DAST) to find vulnerabilities in your running application.<br>**Snyk:** To scan your NuGet packages for known vulnerabilities. |
+| Spell Checking | Code Spell Checker (VS Code extension), LanguageTool | **Code Spell Checker:** If you are using Visual Studio Code.<br>**LanguageTool:** Can be integrated into your CI/CD pipeline to check for spelling and grammar errors in your source code. |
+
+## Angular (TypeScript) Tools
+
+| Test Type | Tools | Description |
+|---|---|---|
+| Unit Testing | Jest, Mocha | **Jest:** A popular and fast testing framework, widely used in the Angular community.<br>**Mocha:** A flexible testing framework that can be paired with an assertion library like Chai. |
+| Integration Testing | Cypress, Protractor, Selenium | **Cypress:** A modern, all-in-one testing framework for web applications that is great for testing Angular applications.<br>**Protractor:** A testing framework specifically designed for Angular applications, although it is being deprecated, it is still used in many projects.<br>**Selenium:** Can also be used for end-to-end testing of Angular applications. |
+| Code Styling & Linting | ESLint, Prettier | **ESLint:** The standard linter for TypeScript and JavaScript.<br>**Prettier:** An opinionated code formatter to ensure consistent code style. |
+| Security Checks | Snyk, OWASP ZAP, Trivy | **Snyk:** To find and fix vulnerabilities in your npm packages.<br>**OWASP ZAP:** For dynamic security testing of your running application.<br>**Trivy:** To scan your container images for vulnerabilities. |
+| Spell Checking | Code Spell Checker (VS Code extension) | A great choice for checking spelling in your TypeScript code and documentation. |
