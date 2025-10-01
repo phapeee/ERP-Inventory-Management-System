@@ -64,7 +64,7 @@ ERD Diagram
 Below is the conceptual ERD showing the core entities and their
 relationships.
 
-<img src="/home/ubuntu/ERP-Inventory-Management-System/Documents/Markdown/attachments/data_model_erd/media/image1.png" style="width:7.5in;height:9.56042in" alt="A screenshot of a computer screen AI-generated content may be incorrect." />
+<img src="/home/ubuntu/ERP-Inventory-Management-System/Documents/Markdown/attachments/data_model_erd/media/data_model_erd.png" style="width:7.5in;height:9.56042in" alt="A screenshot of a computer screen AI-generated content may be incorrect." />
 
 ERP ERD
 
