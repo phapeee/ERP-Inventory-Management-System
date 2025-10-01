@@ -1,0 +1,31 @@
+@startuml Inventory Cycle Count Flow
+!include ../../C4_model/C4_Sequence.puml
+
+title Inventory Module – Cycle Count Workflow
+
+Participant_Scheduler(cycleScheduler, "Cycle Count Scheduler")
+Participant_App(invApp, "Inventory App Service")
+Participant_TaskRepo(taskRepo, "Inventory Task Repository")
+Participant_RFDevice(rfDevice, "RF Device / Associate")
+Participant_Aggregate(invAgg, "Inventory Item Aggregate")
+Participant_EventBus(eventBus, "Service Bus")
+Participant_Analytics(analyticsModule, "Analytics Module")
+Participant_Purchasing(purchModule, "Purchasing Module")
+
+cycleScheduler -> invApp : GenerateCycleCountPlan(ABC)
+invApp -> taskRepo : CreateTasks(bin, SKU)
+taskRepo --> invApp : TaskIds
+invApp -> eventBus : Publish(CycleCountCreated)
+invApp -> rfDevice : PushTask(taskId)
+rfDevice -> invApp : SubmitCount(taskId, quantity)
+invApp -> invAgg : Apply(CycleCountMeasured)
+invAgg --> invApp : Events(item-adjusted?)
+invApp -> taskRepo : CompleteTask(taskId)
+invApp -> eventBus : Publish(CycleCountCompleted)
+invApp -> analyticsModule : RecordAccuracy(bin, variance)
+analyticsModule --> invApp : Ack
+invApp -> purchModule : SignalReorder(if variance > threshold)
+purchModule --> invApp : Ack
+invApp -> rfDevice : Confirmation / next task
+
+@enduml

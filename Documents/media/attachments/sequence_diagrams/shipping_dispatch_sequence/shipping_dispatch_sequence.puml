@@ -1,0 +1,47 @@
+@startuml Shipping Dispatch Flow
+!include ../../C4_model/C4_Sequence.puml
+
+title Shipping Dispatch (Pick Complete → Carrier Handoff)
+
+Participant_Module(orderModule, "Order Module")
+Participant_Module(inventoryModule, "Inventory Module")
+Participant_Controller(shipController, "Shipping API", "ShippingController")
+Participant_App(shipApp, "Shipping App Service", "ShippingApplicationService")
+Participant_Workflow(packWorkflow, "Pack Workflow")
+Participant_Policy(hazmatPolicy, "Hazmat Policy")
+Participant_Domain(shipmentAgg, "Shipment Aggregate")
+Participant_Adapter(labelGateway, "Carrier Label Gateway")
+Participant_Adapter(carrierAdapter, "Carrier Adapter", "UPS/FedEx/USPS")
+Participant_DocStore(docStore, "Hazmat Document Store")
+Participant_EventBus(eventBus, "Service Bus")
+Participant_Notification(notificationPublisher, "Shipping Notification Publisher")
+Participant_Tracking(trackingListener, "Tracking Listener")
+Participant_Accounting(accountingPublisher, "Accounting Publisher")
+
+inventoryModule -> shipController : POST /api/shipping/{orderId}/ready
+theCustomer -> orderModule : (Order status updated to Picked)
+shipController -> shipApp : BeginPack(orderId)
+shipApp -> hazmatPolicy : ValidateHazmat(payload)
+hazmatPolicy --> shipApp : ComplianceResult
+shipApp -> packWorkflow : GenerateCartons(order)
+packWorkflow --> shipApp : CartonPlan
+shipApp -> shipmentAgg : Apply(ShipmentPacked)
+shipmentAgg --> shipApp : ShipmentEvent
+shipApp -> labelGateway : RequestLabels(cartons)
+labelGateway -> carrierAdapter : CreateShipment
+carrierAdapter --> labelGateway : Labels + Tracking
+labelGateway --> shipApp : LabelArtifacts
+shipApp -> docStore : SaveDocuments(SDS, manifests)
+docStore --> shipApp : Ack
+shipApp -> shipmentAgg : Apply(LabelsGenerated)
+shipmentAgg --> shipApp : ShipmentEvent
+shipApp -> eventBus : Publish(ShipmentDispatched)
+shipApp -> notificationPublisher : NotifyCustomer(tracking)
+notificationPublisher --> eventBus : AlertEvent
+shipApp -> accountingPublisher : Publish(FreightCharge)
+accountingPublisher --> eventBus : JournalEvent
+trackingListener -> carrierAdapter : PollTracking
+carrierAdapter --> trackingListener : TrackingUpdate
+trackingListener -> eventBus : Publish(DeliveryUpdate)
+
+@enduml

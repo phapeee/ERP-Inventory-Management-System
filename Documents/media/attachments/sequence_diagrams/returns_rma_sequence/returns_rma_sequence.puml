@@ -1,0 +1,55 @@
+@startuml RMA Workflow
+!include ../../C4_model/C4_Sequence.puml
+
+title RMA Creation → Inspection → Refund
+
+Participant_UI(csr, "CSR / Customer Portal")
+Participant_Controller(rmaController, "Returns API", "RmaController")
+Participant_App(rmaApp, "Rma App Service", "RmaApplicationService")
+Participant_Validator(rmaValidator, "RmaValidator")
+Participant_Aggregate(rmaAgg, "Rma Aggregate")
+Participant_Workflow(inspectionHandler, "Inspection Handler")
+Participant_Policy(dispositionPolicy, "Disposition Policy")
+Participant_Inventory(inventoryClient, "Inventory Client")
+Participant_Refund(refundGateway, "Refund Gateway")
+Participant_Accounting(accountingPublisher, "Accounting Publisher")
+Participant_Shared(eventPublisher, "Rma Event Publisher")
+Participant_Notification(notificationPublisher, "Notification Publisher")
+Participant_Evidence(evidenceStore, "Evidence Store")
+Participant_Shipping(shippingClient, "Return Shipping Client")
+
+csr -> rmaController : POST /api/rma
+rmaController -> rmaApp : CreateRma(command)
+rmaApp -> rmaValidator : Validate(request)
+rmaValidator --> rmaApp : ValidationResult
+rmaApp -> rmaAgg : Apply(RmaCreated)
+rmaAgg --> rmaApp : RmaCreatedEvent
+rmaApp -> shippingClient : GenerateReturnLabel
+shippingClient --> rmaApp : LabelUrl
+rmaApp -> notificationPublisher : SendAcknowledgement
+notificationPublisher --> csr : Email/SMS
+
+== Inspection Phase ==
+inspectionHandler -> rmaApp : TriggerInspection(rmaId)
+rmaApp -> rmaAgg : Load()
+rmaApp -> evidenceStore : UploadPhotos()
+evidenceStore --> rmaApp : Ack
+rmaApp -> dispositionPolicy : DetermineDisposition(data)
+dispositionPolicy --> rmaApp : Decision(Restock/Refurbish/Scrap)
+rmaApp -> inventoryClient : ApplyDisposition(decision)
+inventoryClient --> rmaApp : AdjustmentResult
+rmaApp -> rmaAgg : Apply(DispositionRecorded)
+rmaAgg --> rmaApp : RmaUpdatedEvents
+
+== Refund Phase ==
+rmaApp -> refundGateway : IssueRefund(amount)
+refundGateway --> rmaApp : RefundConfirmation
+rmaApp -> accountingPublisher : Publish(CreditMemo)
+accountingPublisher --> rmaApp : Ack
+rmaApp -> rmaAgg : Apply(RefundIssued)
+rmaAgg --> rmaApp : RmaClosedEvent
+rmaApp -> notificationPublisher : NotifyCustomer(status)
+notificationPublisher --> csr : Email/SMS
+rmaApp -> eventPublisher : Publish(RmaClosed)
+
+@enduml

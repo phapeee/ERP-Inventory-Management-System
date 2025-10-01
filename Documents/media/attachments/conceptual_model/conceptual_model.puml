@@ -1,0 +1,181 @@
+@startuml PineCone Pro ERP/IMS — Conceptual Model
+left to right direction
+skinparam linetype ortho 
+
+' ---------- Styling ----------
+!theme vibrant
+title PineCone Pro ERP/IMS — Conceptual Model (MVP vs Phase 2)
+
+skinparam shadowing false
+skinparam roundcorner 12
+skinparam dpi 140
+skinparam ArrowColor #606770
+skinparam ArrowThickness 1.3
+skinparam PackageBorderThickness 2
+skinparam ClassBorderThickness 1.2
+skinparam linetype ortho
+
+' Stereotype colors
+skinparam class<<MVP>> {
+  BackgroundColor #E8F5E9
+  BorderColor #2E7D32
+}
+skinparam class<<Phase2>> {
+  BackgroundColor #FFF3E0
+  BorderColor #EF6C00
+}
+
+' ---------------------------------------------------------
+' Product Information Management (PIM)
+' ---------------------------------------------------------
+package "Product (PIM)" #FFF4E5 {
+  class Product <<MVP>> {
+    + SKU
+    + Name
+    + HazardClass?
+  }
+  class ProductCategory <<MVP>>
+  class KitBundle as "BOM / Kit" <<MVP>>
+  ProductCategory "1" o-- "*" Product
+  Product "1" -down-> "*" KitBundle : has components
+}
+
+' ---------------------------------------------------------
+' Inventory & Warehouse
+' ---------------------------------------------------------
+package "Inventory & Warehouse" #F3E8FF {
+  class Warehouse <<MVP>>
+  class Location <<MVP>>
+  class InventoryItem <<MVP>> {
+    + qtyOnHand
+    + qtyReserved
+  }
+  class Lot <<MVP>>
+  class Serial <<MVP>>
+
+  Warehouse "1" o-- "*" Location
+  Product "*" -- "*" Location : via
+  class _InventoryLink <<hidden>> {}
+  Product "*" -- _InventoryLink
+  _InventoryLink -- "*" Location
+  _InventoryLink -[hidden]-> InventoryItem
+
+  InventoryItem "*" --> "0..1" Lot
+  InventoryItem "*" --> "0..1" Serial
+}
+
+' ---------------------------------------------------------
+' Orders & RMA
+' ---------------------------------------------------------
+package "Orders & RMA" #E9F4FF {
+  class Customer <<MVP>>
+  class Order <<MVP>>
+  class OrderLine <<MVP>>
+  class Payment <<MVP>>
+  class Shipment <<MVP>>
+  class RMA <<MVP>>
+
+  Customer "1" o-- "*" Order
+  Order "1" o-- "*" OrderLine
+  OrderLine "*" --> "1" Product
+  Order "1" --> "*" Shipment
+  Shipment "*" --> "1" Location : ships from
+  RMA "*" --> "1" Order
+  RMA "*" --> "1" Customer
+}
+
+' ---------------------------------------------------------
+' Purchasing & Vendor
+' ---------------------------------------------------------
+package "Purchasing & Vendor" #E8FBFF {
+  class Vendor <<MVP>>
+  class PurchaseOrder <<MVP>>
+  class PurchaseOrderLine <<MVP>>
+
+  Vendor "1" o-- "*" PurchaseOrder
+  PurchaseOrder "1" o-- "*" PurchaseOrderLine
+  PurchaseOrderLine "*" --> "1" Product
+}
+
+' ---------------------------------------------------------
+' Shipping & Hazmat
+' ---------------------------------------------------------
+package "Shipping & Hazmat" #E8FFF0 {
+  class Carrier <<MVP>>
+  class ShippingLabel <<MVP>>
+  class HazmatDocument <<MVP>>
+
+  Shipment "*" --> "1" Carrier
+  Shipment "1" --> "1" ShippingLabel
+  Shipment "0..1" --> "0..1" HazmatDocument
+}
+
+' ---------------------------------------------------------
+' Tax & Reporting
+' ---------------------------------------------------------
+package "Tax & Reporting" #FFFBEA {
+  class TaxRate <<MVP>>
+  class TaxReport <<MVP>>
+  OrderLine "*" --> "1" TaxRate : uses for calc
+  TaxReport "1" <-- "*" Order : summarized from
+}
+
+' ---------------------------------------------------------
+' Accounting Sync
+' ---------------------------------------------------------
+package "Accounting Sync" #F0F9FF {
+  class AccountEntry <<MVP>>
+  class APBill <<MVP>>
+  class ARInvoice <<MVP>>
+
+  AccountEntry "*" <-- "*" Order : revenue/COGS
+  AccountEntry "*" <-- "*" PurchaseOrder : receipts/GRNI
+  APBill "1" <-- "*" PurchaseOrder
+  ARInvoice "1" <-- "*" Order
+}
+
+' ---------------------------------------------------------
+' Analytics & Alerts
+' ---------------------------------------------------------
+package "Operational Analytics & Alerts" #F7F7FF {
+  class KPI_Dashboard <<MVP>>
+  KPI_Dashboard "1" <-- "*" Order
+  KPI_Dashboard "1" <-- "*" InventoryItem
+  KPI_Dashboard "1" <-- "*" Vendor
+  KPI_Dashboard "1" <-- "*" TaxReport
+}
+
+' ---------------------------------------------------------
+' Cross-module dependencies (conceptual)
+' ---------------------------------------------------------
+Order ..> InventoryItem : allocate/reserve
+Order ..> TaxRate : compute taxes
+Order ..> Carrier : rate shop / label
+Order ..> AccountEntry : post invoice/COGS
+PurchaseOrder ..> InventoryItem : receive to stock
+PurchaseOrder ..> AccountEntry : post AP/GRNI
+RMA ..> InventoryItem : restock/scrap
+Shipment ..> AccountEntry : recognize revenue
+
+' ---------------------------------------------------------
+' Phase 2 roadmap
+' ---------------------------------------------------------
+package "Phase 2 Roadmap" #FFF1E8 {
+  class ForecastingService <<Phase2>>
+  class PromotionEngine <<Phase2>>
+  class ContractPricing <<Phase2>>
+  class LightManufacturing as "Light Mfg / Kitting\n(BOM Versioning)" <<Phase2>>
+  class Integration3PL as "3PL Bidirectional\nIntegration" <<Phase2>>
+  class CSRConsole as "Customer Service\nConsole w/ SLA" <<Phase2>>
+  class EDIConnector as "EDI w/ Vendors" <<Phase2>>
+
+  ForecastingService ..> InventoryItem : demand → reorder pts
+  ForecastingService ..> PurchaseOrder : auto EOQ POs
+  PromotionEngine ..> OrderLine : pricing/discounts
+  ContractPricing ..> OrderLine : B2B price tiers
+  LightManufacturing ..> InventoryItem : consume/produce kits
+  Integration3PL ..> Shipment : updates & stock sync
+  CSRConsole ..> Order : escalations/SLA timers
+  EDIConnector ..> PurchaseOrder : PO/ASN/Invoice flows
+}
+@enduml

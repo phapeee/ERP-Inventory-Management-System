@@ -1,0 +1,34 @@
+@startuml Analytics Alert Workflow
+!include ../../C4_model/C4_Sequence.puml
+
+title KPI Breach Triggering Alert Notification
+
+Participant_EventBus(eventBus, "Service Bus")
+Participant_Module(inventoryModule, "Inventory Module")
+Participant_Module(analyticsModule, "Analytics & Alerting Module")
+Component(metricNormalizer, "MetricNormalizer")
+Component(kpiAggregator, "KpiAggregator")
+Component(alertEvaluator, "AlertEvaluator")
+Component(alertDispatcher, "AlertDispatcher")
+Component(alertRepository, "AlertRepository")
+Participant_Adapter(notificationGateway, "Notification Gateway")
+Participant_UI(opsManager, "Operations Manager")
+Participant_Module(observabilityStack, "Observability Stack")
+
+inventoryModule -> eventBus : Publish(CycleCountCompleted w/ variance)
+eventBus -> analyticsModule : Deliver event
+analyticsModule -> metricNormalizer : Normalize payload
+metricNormalizer -> kpiAggregator : Update KPI (inventory accuracy)
+kpiAggregator --> analyticsModule : KPIResult
+analyticsModule -> alertEvaluator : Evaluate thresholds
+alertEvaluator -> alertRepository : Load alert definition
+alertRepository --> alertEvaluator : Rule
+alertEvaluator -> observabilityStack : Log evaluation (optional)
+alertEvaluator -> alertDispatcher : Trigger alert (if breached)
+alertDispatcher -> notificationGateway : Send alert (email/SMS/Teams)
+notificationGateway --> opsManager : Alert message
+alertDispatcher -> alertRepository : Persist alert history
+alertDispatcher -> observabilityStack : Emit alert metric
+analyticsModule -> opsManager : Update dashboard (async)
+
+@enduml

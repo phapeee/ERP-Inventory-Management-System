@@ -1,0 +1,236 @@
+@startuml Event Storming (MVP + Phase 2)
+title Event Storming (MVP + Phase 2)
+
+skinparam shadowing false
+skinparam roundcorner 14
+skinparam dpi 140
+skinparam ArrowColor #606770
+skinparam ArrowThickness 1.4
+skinparam packageBorderThickness 2
+skinparam packageStyle dashed
+
+' Stereotypes / colors
+skinparam rectangle<<Command>> { 
+    BackgroundColor #CFE3FF; 
+    BorderColor #3A6EE8 
+}
+skinparam rectangle<<Policy>>  { 
+    BackgroundColor #E2F7F2; 
+    BorderColor #0F766E 
+}
+skinparam rectangle<<Event>>   { 
+    BackgroundColor #FFC38B; 
+    BorderColor #E07A2F 
+}
+skinparam e<<Read>>    { 
+    BackgroundColor #FFF6A9; 
+    BorderColor #C3A400 
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' PIM (Product Information Management)
+package "PIM" {
+  rectangle "Create/Update Product" <<Command>> as cmd_pim_upsert
+  rectangle "Approve Product" <<Command>> as cmd_pim_approve
+  rectangle "Map/Publish to Channels" <<Policy>> as pol_pim_publish
+  rectangle "Product Master" <<Read>> as rm_pim
+
+  rectangle "product-created" <<Event>> as evt_pim_created
+  rectangle "product-updated" <<Event>> as evt_pim_updated
+  rectangle "product-price-changed" <<Event>> as evt_pim_price
+  rectangle "product-deleted" <<Event>> as evt_pim_deleted
+  rectangle "product-hazmat-updated" <<Event>> as evt_pim_haz
+
+  cmd_pim_upsert --> rm_pim
+  cmd_pim_approve --> rm_pim
+  rm_pim --> evt_pim_created
+  rm_pim --> evt_pim_updated
+  rm_pim --> evt_pim_price
+  rm_pim --> evt_pim_deleted
+  rm_pim --> evt_pim_haz
+  evt_pim_created ..> pol_pim_publish : triggers
+  evt_pim_updated ..> pol_pim_publish : triggers
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' Inventory & Warehouse
+package "Inventory" {
+  rectangle "Receive Goods" <<Command>> as cmd_inv_receive
+  rectangle "Put-away / Move / Pick" <<Command>> as cmd_inv_move
+  rectangle "Adjust / Cycle Count" <<Command>> as cmd_inv_adjust
+  rectangle "Transfer Stock" <<Command>> as cmd_inv_transfer
+
+  rectangle "item-received" <<Event>> as evt_inv_received
+  rectangle "item-adjusted" <<Event>> as evt_inv_adjusted
+  rectangle "transfer-initiated" <<Event>> as evt_inv_xfer_start
+  rectangle "transfer-completed" <<Event>> as evt_inv_xfer_done
+  rectangle "cyclecount-completed" <<Event>> as evt_inv_cc_done
+  rectangle "lot-expired" <<Event>> as evt_lot_expired
+  rectangle "serial-assigned" <<Event>> as evt_serial_assigned
+
+  cmd_inv_receive --> evt_inv_received
+  cmd_inv_adjust --> evt_inv_adjusted
+  cmd_inv_transfer --> evt_inv_xfer_start
+  evt_inv_xfer_start --> evt_inv_xfer_done
+  cmd_inv_move --> evt_serial_assigned
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' Orders & Fulfillment (+ Returns)
+package "Orders & RMA" {
+  rectangle "Place Order / Validate" <<Command>> as cmd_ord_place
+  rectangle "Allocate / Pick / Ship" <<Policy>> as pol_ord_fulfill
+  rectangle "Capture Payment" <<Policy>> as pol_pay_capture
+  rectangle "Cancel Order" <<Command>> as cmd_ord_cancel
+
+  rectangle "order-created" <<Event>> as evt_ord_created
+  rectangle "order-status-updated" <<Event>> as evt_ord_status
+  rectangle "order-paid" <<Event>> as evt_ord_paid
+  rectangle "order-cancelled" <<Event>> as evt_ord_cancelled
+  rectangle "order-fulfilled" <<Event>> as evt_ord_fulfilled
+  rectangle "order-returned" <<Event>> as evt_ord_returned
+
+  cmd_ord_place --> evt_ord_created
+  pol_ord_fulfill --> evt_ord_status
+  pol_pay_capture --> evt_ord_paid
+  cmd_ord_cancel --> evt_ord_cancelled
+  evt_ord_status --> evt_ord_fulfilled
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' Purchasing & Vendors
+package "Purchasing" {
+  rectangle "Submit Requisition" <<Command>> as cmd_po_req
+  rectangle "Approve PO" <<Command>> as cmd_po_approve
+  rectangle "Send PO / Acknowledge" <<Policy>> as pol_po_send
+  rectangle "Receive Against PO" <<Policy>> as pol_po_receive
+
+  rectangle "purchaseorder-created" <<Event>> as evt_po_created
+  rectangle "purchaseorder-approved" <<Event>> as evt_po_approved
+  rectangle "purchaseorder-acknowledged" <<Event>> as evt_po_ack
+  rectangle "purchaseorder-received" <<Event>> as evt_po_received
+  rectangle "vendor-updated" <<Event>> as evt_vendor_updated
+
+  cmd_po_req --> evt_po_created
+  cmd_po_approve --> evt_po_approved
+  pol_po_send --> evt_po_ack
+  pol_po_receive --> evt_po_received
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' Lot & Serial Tracking
+package "Lot & Serial" {
+  rectangle "Create Lot / Update" <<Command>> as cmd_lot_upd
+  rectangle "Create Serial / Assign" <<Command>> as cmd_ser_create
+
+  rectangle "lot-created" <<Event>> as evt_lot_created
+  rectangle "lot-updated" <<Event>> as evt_lot_updated
+  rectangle "lot-recalled" <<Event>> as evt_lot_recalled
+  rectangle "serial-created" <<Event>> as evt_serial_created
+  rectangle "serial-assigned (dup)" <<Event>> as evt_serial_assigned2
+
+  cmd_lot_upd --> evt_lot_created
+  cmd_lot_upd --> evt_lot_updated
+  cmd_ser_create --> evt_serial_created
+  cmd_ser_create --> evt_serial_assigned2
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' Shipping & Hazmat
+package "Shipping" {
+  rectangle "Rate Shop" <<Command>> as cmd_ship_rate
+  rectangle "Buy Label" <<Command>> as cmd_ship_label
+  rectangle "Dispatch Shipment" <<Command>> as cmd_ship_dispatch
+  rectangle "Track & Notify" <<Policy>> as pol_ship_track
+
+  rectangle "rate-calculated" <<Event>> as evt_rate
+  rectangle "label-generated" <<Event>> as evt_label
+  rectangle "shipment-dispatched" <<Event>> as evt_dispatch
+  rectangle "shipment-delivered" <<Event>> as evt_delivered
+  rectangle "hazmat-doc-uploaded" <<Event>> as evt_hazdoc
+
+  cmd_ship_rate --> evt_rate
+  cmd_ship_label --> evt_label
+  cmd_ship_dispatch --> evt_dispatch
+  pol_ship_track --> evt_delivered
+  cmd_ship_label --> evt_hazdoc
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' Tax & Accounting
+package "Tax & Accounting" {
+  rectangle "Calculate Tax" <<Command>> as cmd_tax_calc
+  rectangle "Create Invoice" <<Command>> as cmd_ar_invoice
+  rectangle "Record Payment" <<Command>> as cmd_ap_ar_pay
+  rectangle "Post Journal Entry" <<Policy>> as pol_gl_post
+
+  rectangle "tax-calculated" <<Event>> as evt_tax
+  rectangle "invoice-created" <<Event>> as evt_invoice
+  rectangle "payment-received" <<Event>> as evt_payment
+  rectangle "journal-entry-created" <<Event>> as evt_journal
+
+  cmd_tax_calc --> evt_tax
+  cmd_ar_invoice --> evt_invoice
+  cmd_ap_ar_pay --> evt_payment
+  pol_gl_post --> evt_journal
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' Analytics & Alerts
+package "Analytics & Alerts" {
+  rectangle "Compute KPI" <<Policy>> as pol_kpi
+  rectangle "Breach Monitor" <<Policy>> as pol_alert
+
+  rectangle "metric-updated" <<Event>> as evt_metric
+  rectangle "threshold-breached" <<Event>> as evt_breach
+  rectangle "user-notified" <<Event>> as evt_user_notified
+
+  pol_kpi --> evt_metric
+  pol_alert --> evt_breach
+  evt_breach --> evt_user_notified
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' Phase 2 (Future)
+package "Phase 2" {
+  rectangle "Generate Forecast" <<Command>> as cmd_fcst
+  rectangle "Assign Promotion" <<Command>> as cmd_promo
+  rectangle "Assemble Kit" <<Command>> as cmd_mfg_kit
+  rectangle "3PL Sync" <<Policy>> as pol_3pl
+  rectangle "Open/Resolve Case" <<Command>> as cmd_case
+
+  rectangle "demand-forecast-generated" <<Event>> as evt_fcst
+  rectangle "promo-assigned" <<Event>> as evt_promo
+  rectangle "kit-assembled" <<Event>> as evt_kit
+  rectangle "3pl.sync-started" <<Event>> as evt_3pl_start
+  rectangle "3pl.sync-completed" <<Event>> as evt_3pl_done
+  rectangle "case-created" <<Event>> as evt_case_created
+  rectangle "case-resolved" <<Event>> as evt_case_resolved
+
+  cmd_fcst --> evt_fcst
+  cmd_promo --> evt_promo
+  cmd_mfg_kit --> evt_kit
+  pol_3pl --> evt_3pl_start
+  pol_3pl --> evt_3pl_done
+  cmd_case --> evt_case_created
+  cmd_case --> evt_case_resolved
+}
+
+' ─────────────────────────────────────────────────────────────────────────────
+' Cross-context triggers (illustrative)
+evt_ord_created ..> cmd_tax_calc : calculate tax
+evt_ord_created ..> cmd_ship_rate : estimate rates
+evt_ord_paid ..> cmd_ship_label : buy label
+evt_label ..> cmd_ship_dispatch
+evt_dispatch ..> pol_ship_track
+evt_inv_received ..> cmd_inv_move : put-away
+evt_pim_created .....> cmd_inv_receive : enable ASN/item setup
+evt_po_received ..> cmd_inv_receive : receive goods
+evt_ord_fulfilled ....> pol_gl_post : COGS/revenue
+evt_payment ..> pol_gl_post
+evt_lot_recalled ..> cmd_ord_cancel : stop fulfillment
+evt_serial_assigned .[hidden].> evt_lot_recalled
+evt_delivered .[hidden].> pol_kpi
+evt_journal ..[hidden].> pol_3pl
+
+@enduml

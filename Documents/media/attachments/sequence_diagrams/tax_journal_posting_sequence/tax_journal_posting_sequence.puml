@@ -1,0 +1,43 @@
+@startuml Tax & Accounting – Journal Posting
+!include ../../C4_model/C4_Sequence.puml
+
+title Tax Calculation & Journal Posting Flow
+
+Participant_Module(orderModule, "Order Module")
+Participant_Controller(taxController, "Finance API", "TaxAccountingController")
+Participant_App(taxApp, "Tax App Service")
+Participant_Validator(taxValidator, "TaxRequestValidator")
+Participant_Domain(taxAggregate, "TaxTransaction Aggregate")
+Participant_Domain(journalAggregate, "JournalEntry Aggregate")
+Participant_Policy(ledgerPolicy, "Ledger Mapping Policy")
+Participant_External(taxService, "External Tax Service")
+Participant_External(accountingClient, "Accounting System Client")
+Participant_EventBus(eventBus, "Service Bus")
+Participant_Audit(auditTrail, "Finance Audit Trail")
+Participant_Analytics(analyticsModule, "Analytics Module")
+
+orderModule -> taxController : POST /finance/tax/calc
+taxController -> taxApp : CalculateTax(request)
+taxApp -> taxValidator : Validate
+taxValidator --> taxApp : Valid
+taxApp -> taxService : CalculateTax
+taxService --> taxApp : TaxBreakdown
+taxApp -> ledgerPolicy : MapAccounts(order)
+ledgerPolicy --> taxApp : AccountMap
+taxApp -> taxAggregate : Apply(TaxCalculated)
+taxAggregate --> taxApp : TaxCalculatedEvent
+taxApp -> journalAggregate : Apply(JournalPrepared)
+journalAggregate --> taxApp : JournalEvents
+taxApp -> accountingClient : PostJournal(entry)
+accountingClient --> taxApp : PostingResult
+taxApp -> journalAggregate : Apply(JournalPosted)
+journalAggregate --> taxApp : JournalPostedEvent
+taxApp -> auditTrail : Record(action)
+auditTrail --> taxApp : Ack
+taxApp -> eventBus : Publish(JournalPosted)
+taxApp -> analyticsModule : UpdateLiability
+analyticsModule --> taxApp : Ack
+taxApp --> taxController : TaxResponse(liability, journalId)
+taxController --> orderModule : Response
+
+@enduml

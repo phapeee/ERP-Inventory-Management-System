@@ -1,0 +1,44 @@
+@startuml Purchasing Replenishment Flow
+!include ../../C4_model/C4_Sequence.puml
+
+title Replenishment Recommendation to PO Placement
+
+Participant_Scheduler(forecastScheduler, "Forecast Scheduler")
+Participant_Module(forecastModule, "Forecasting Module")
+Participant_App(purchasingApp, "Purchasing App Service")
+Participant_Controller(purchasingController, "Purchasing API")
+Participant_App(inventoryApp, "Inventory App Service")
+Participant_Policy(purchPolicy, "Purchasing Policy")
+Participant_Aggregate(poAggregate, "PurchaseOrder Aggregate")
+Participant_Adapter(vendorAdapter, "Vendor EDI Adapter")
+Participant_EventBus(eventBus, "Service Bus")
+Participant_Module(integrationModule, "3PL/EDI Integration")
+Participant_UI(purchasingLead, "Purchasing Lead")
+Participant_Inventory(inventoryModule, "Inventory Module")
+Participant_Module(analyticsModule, "Analytics Module")
+
+forecastScheduler -> forecastModule : RunForecast()
+forecastModule -> eventBus : Publish(ReorderRecommendation)
+eventBus -> purchasingApp : Deliver recommendation
+purchasingApp -> purchPolicy : Evaluate thresholds/approvals
+purchasingApp -> poAggregate : Create Draft PO
+poAggregate --> purchasingApp : DraftCreated
+purchasingApp -> purchasingController : Notify pending approval
+purchasingController -> purchasingLead : Task: approve recommendation
+purchasingLead -> purchasingController : Approve draft (with adjustments)
+purchasingController -> purchasingApp : Approval decision
+purchasingApp -> poAggregate : Apply(Approved)
+poAggregate --> purchasingApp : PoApprovedEvent
+purchasingApp -> eventBus : Publish(PurchaseOrderApproved)
+eventBus -> inventoryApp : Reserve expected quantity
+inventoryApp --> eventBus : InventoryPlanned
+purchasingApp -> vendorAdapter : Generate PO (EDI/XML)
+vendorAdapter -> integrationModule : Send PO to vendor
+integrationModule --> vendorAdapter : Ack/Errors
+vendorAdapter --> purchasingApp : Transmission status
+purchasingApp -> eventBus : Publish(PurchaseOrderSent)
+purchasingApp -> analyticsModule : Record lead-time expectation
+analyticsModule --> purchasingApp : Ack
+purchasingApp -> purchasingLead : Confirmation & ETA
+
+@enduml
