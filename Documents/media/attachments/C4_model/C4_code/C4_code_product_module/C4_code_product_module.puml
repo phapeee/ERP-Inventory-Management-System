@@ -1,0 +1,73 @@
+@startuml PineConePro_ERPIMS_C4_ProductModule
+!include ../C4_Code.puml
+
+LAYOUT_WITH_LEGEND()
+
+Boundary(productApi, "API Layer") {
+  Code(productController, "ProductController", "ASP.NET Core Controller", "CRUD endpoints for SKUs, attributes, approvals, kit maintenance.")
+  Code(channelController, "ChannelSyncController", "ASP.NET Core Controller", "Schedules channel syndication jobs, status reporting.")
+}
+
+Boundary(productApp, "Application Layer") {
+  Code(productAppService, "ProductApplicationService", "Service", "Coordinates product workflows, validations, approvals, publishing.")
+  Code(kitAppService, "KitApplicationService", "Service", "Manages kit BOM versions and inventory implications.")
+  Code(productValidator, "ProductValidator", "FluentValidation", "Ensures required attributes, hazard data, unit conversions.")
+  Code(kitValidator, "KitValidator", "FluentValidation", "Verifies component validity, effective dates, circular references.")
+  Code(productApprovalFlow, "ProductApprovalWorkflow", "Process Manager", "Routes approvals to Ops/E-Com, tracks status.")
+  Code(channelScheduler, "ChannelSyncScheduler", "Workflow", "Enqueues outbound sync jobs, delta exports.")
+}
+
+Boundary(productDomain, "Domain Layer") {
+  Code(productAggregate, "ProductAggregate", "DDD Aggregate", "Maintains SKU master data, lifecycle state, hazards, pricing metadata.")
+  Code(kitAggregate, "KitAggregate", "DDD Aggregate", "Represents bundled SKUs, component ratios, effectivity windows.")
+  Code(attributeModel, "AttributeModel", "Value Object", "Extensible attributes, translations, units-of-measure conversions.")
+  Code(hazmatRules, "HazmatRules", "Domain Policy", "Validates DOT/IATA compliance, packaging.")
+  Code(channelPolicy, "ChannelEligibilityPolicy", "Domain Policy", "Determines channel availability based on attributes, compliance.")
+  Code(productEvents, "ProductDomainEvents", "Event Definitions", "product-created/updated, price-changed, hazmat-updated.")
+}
+
+Boundary(productInfra, "Infrastructure & Integration") {
+  Code(productRepository, "ProductRepository", "EF Core Repository", "Persists products, attributes, kits with schema-per-module.")
+  Code(productReadProjector, "CatalogReadProjector", "Projection Handler", "Builds denormalized catalog views for SPA/search.")
+  Code(channelAdapterFactory, "ChannelAdapterFactory", "Factory", "Resolves channel-specific connector implementations.")
+  Code(webStoreAdapter, "WebStoreConnector", "Adapter", "Publishes catalog/pricing feeds to web storefront.")
+  Code(amazonAdapter, "AmazonConnector", "Adapter", "Handles Amazon MWS/SP-API interactions.")
+  Code(posAdapter, "PosConnector", "Adapter", "Syncs catalog to in-store POS.")
+  Code(b2bAdapter, "B2BPortalConnector", "Adapter", "Publishes catalog to B2B portal APIs.")
+  Code(vendorFeedParser, "VendorFeedParser", "Integration", "Imports vendor catalog files (CSV/XML/EDI).")
+  Code(assetStorageClient, "AssetStorageClient", "Blob Client", "Stores images, SDS docs, marketing assets.")
+  Code(productEventPublisher, "ProductEventPublisher", "Event Dispatcher", "Publishes product domain events to message bus.")
+  Code(productCache, "ProductCache", "Redis Cache", "Caches hot catalog entries, attribute dictionaries.")
+}
+
+Rel(productController, productAppService, "Invokes")
+Rel(channelController, channelScheduler, "Schedules jobs")
+Rel(productAppService, productValidator, "Validates")
+Rel(kitAppService, kitValidator, "Validates")
+Rel(productAppService, productAggregate, "Mutates aggregate")
+Rel(kitAppService, kitAggregate, "Mutates aggregate")
+Rel(productAppService, attributeModel, "Constructs value objects")
+Rel(productAppService, hazmatRules, "Checks compliance")
+Rel(productAppService, channelPolicy, "Determines channel eligibility")
+Rel(productApprovalFlow, productAggregate, "Updates approval state")
+Rel(productAggregate, productRepository, "Persist")
+Rel(kitAggregate, productRepository, "Persist")
+Rel(productRepository, productCache, "Update cache")
+Rel(productRepository, productReadProjector, "Trigger projection")
+Rel(productReadProjector, productCache, "Warm cache")
+Rel(productReadProjector, channelScheduler, "Publish deltas")
+Rel(channelScheduler, channelAdapterFactory, "Resolve connector")
+Rel(channelAdapterFactory, webStoreAdapter, "Instantiate")
+Rel(channelAdapterFactory, amazonAdapter, "Instantiate")
+Rel(channelAdapterFactory, posAdapter, "Instantiate")
+Rel(channelAdapterFactory, b2bAdapter, "Instantiate")
+Rel(webStoreAdapter, assetStorageClient, "Fetch assets")
+Rel(amazonAdapter, assetStorageClient, "Fetch assets")
+Rel(vendorFeedParser, productAppService, "Import definitions")
+Rel(productAggregate, productEvents, "Emits")
+Rel(productEvents, productEventPublisher, "Dispatch")
+Rel(productAppService, assetStorageClient, "Upload assets")
+Rel(productCache, productController, "Serve quick reads")
+Rel(productApprovalFlow, productEventPublisher, "Signal approval state")
+
+@enduml

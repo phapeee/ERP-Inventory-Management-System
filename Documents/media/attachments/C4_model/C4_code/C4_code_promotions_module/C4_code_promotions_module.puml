@@ -1,0 +1,61 @@
+@startuml PineConePro_ERPIMS_C4_Promotions
+!include ../C4_Code.puml
+
+LAYOUT_WITH_LEGEND()
+
+Boundary(promoApi, "API Layer") {
+  Code(promoController, "PromotionController", "ASP.NET Core Controller", "CRUD for promotions, coupons, campaign scheduling.")
+  Code(contractController, "ContractPricingController", "ASP.NET Core Controller", "Manage B2B contract price lists and approvals.")
+}
+
+Boundary(promoApp, "Application Layer") {
+  Code(promoAppService, "PromotionApplicationService", "Service", "Coordinates promotion lifecycle, rule compilation, stacking.")
+  Code(contractAppService, "ContractPricingApplicationService", "Service", "Manages contract requests, approvals, expirations.")
+  Code(promoValidator, "PromotionValidator", "FluentValidation", "Validates dates, qualifiers, usage limits.")
+  Code(contractValidator, "ContractPricingValidator", "FluentValidation", "Validates tiers, customer assignments, approval data.")
+  Code(ruleScheduler, "PromotionScheduler", "Workflow", "Activates/deactivates promos, sends reminders.")
+}
+
+Boundary(promoDomain, "Domain Layer") {
+  Code(promoAggregate, "PromotionAggregate", "DDD Aggregate", "Maintains promotion state, limits, metrics.")
+  Code(contractAggregate, "ContractPriceAggregate", "DDD Aggregate", "Holds contract tiers, effective dates, audit trail.")
+  Code(ruleCompiler, "PromotionRuleCompiler", "Domain Service", "Generates executable pricing rules.")
+  Code(eligibilityService, "EligibilityService", "Domain Service", "Evaluates customer/product/channel eligibility.")
+  Code(stackPolicy, "StackingPolicy", "Domain Policy", "Applies stacking vs exclusivity.")
+  Code(contractPolicy, "ContractPolicy", "Domain Policy", "Enforces approvals, overrides, escalation.")
+  Code(promoEvents, "PromotionDomainEvents", "Event Definitions", "promo-assigned, promo-expired, contract-pricing-updated.")
+}
+
+Boundary(promoInfra, "Infrastructure & Integration") {
+  Code(promoRepository, "PromotionRepository", "EF Core Repository", "Persists promotions, coupons, contract tiers.")
+  Code(ruleCache, "PromotionRuleCache", "Redis Cache", "Caches compiled rule sets for order pricing.")
+  Code(readModelProjector, "PromotionReadModelProjector", "Projection", "Builds lookup tables for order module.")
+  Code(eventPublisher, "PromotionEventPublisher", "Event Dispatcher", "Publishes events to Service Bus.")
+  Code(notificationClient, "PromotionNotificationClient", "Adapter", "Sends campaign notifications/reminders.")
+  Code(auditTrail, "PromotionAuditTrail", "Persistence", "Logs approvals, overrides, usage anomalies.")
+}
+
+Rel(promoController, promoAppService, "Invokes")
+Rel(contractController, contractAppService, "Invokes")
+Rel(promoAppService, promoValidator, "Validates")
+Rel(contractAppService, contractValidator, "Validates")
+Rel(promoAppService, ruleCompiler, "Compile rules")
+Rel(ruleCompiler, promoRepository, "Persist compiled data")
+Rel(promoAppService, eligibilityService, "Evaluate eligibility")
+Rel(promoAppService, stackPolicy, "Apply stacking")
+Rel(contractAppService, contractPolicy, "Enforce approvals")
+Rel(promoAppService, promoAggregate, "Mutate aggregate")
+Rel(contractAppService, contractAggregate, "Mutate aggregate")
+Rel(promoAggregate, promoRepository, "Save")
+Rel(contractAggregate, promoRepository, "Save")
+Rel(promoRepository, ruleCache, "Update cache")
+Rel(promoRepository, readModelProjector, "Trigger projection")
+Rel(readModelProjector, ruleCache, "Warm lookup")
+Rel(promoRepository, auditTrail, "Log changes")
+Rel(promoAggregate, promoEvents, "Emit events")
+Rel(contractAggregate, promoEvents, "Emit events")
+Rel(promoEvents, eventPublisher, "Dispatch")
+Rel(ruleScheduler, promoAppService, "Activate/deactivate")
+Rel(ruleScheduler, notificationClient, "Send reminders")
+
+@enduml

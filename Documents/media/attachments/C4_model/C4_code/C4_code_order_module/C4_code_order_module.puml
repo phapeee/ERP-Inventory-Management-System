@@ -1,0 +1,70 @@
+@startuml PineConePro_ERPIMS_C4_OrderModule
+!include ../C4_Code.puml
+
+LAYOUT_WITH_LEGEND()
+
+' Boundaries for layers inside the module
+Boundary(orderApi, "API Layer") {
+  Code(orderController, "OrderController", "ASP.NET Core Controller", "Receives REST requests for order lifecycle (create, cancel, status).")
+  Code(rmaController, "RmaController", "ASP.NET Core Controller", "Entry point for returns workflows and customer interactions.")
+}
+
+Boundary(orderApp, "Application Layer") {
+  Code(orderAppService, "OrderApplicationService", "Service", "Coordinates validation, domain commands, sagas for order lifecycle.")
+  Code(rmaAppService, "RmaApplicationService", "Service", "Manages RMA workflows, inspections, refunds.")
+  Code(orderValidator, "OrderValidator", "FluentValidation", "Validates incoming order DTOs, credit limits, channel rules.")
+  Code(rmaValidator, "RmaValidator", "FluentValidation", "Validates eligibility, warranty, serial/lot requirements.")
+  Code(orderSaga, "FulfillmentSagaHandler", "Saga Handler", "Drives async fulfillment (allocation, payment capture, shipment).")
+  Code(refundSaga, "RefundSagaHandler", "Saga Handler", "Coordinates refund capture, accounting sync for RMAs.")
+}
+
+Boundary(orderDomain, "Domain Layer") {
+  Code(orderAggregate, "OrderAggregate", "DDD Aggregate", "Encapsulates order state transitions, line items, SLA tracking.")
+  Code(rmaAggregate, "RmaAggregate", "DDD Aggregate", "Tracks return state, disposition, refund decisions.")
+  Code(allocationPolicy, "AllocationPolicy", "Domain Policy", "Determines reserve/backorder logic across warehouses.")
+  Code(paymentPolicy, "PaymentPolicy", "Domain Policy", "Selects auth/capture strategy, fraud escalation.")
+  Code(rmaPolicy, "DispositionPolicy", "Domain Policy", "Applies restock/refurbish/scrap decisions.")
+  Code(orderEvents, "OrderDomainEvents", "Event Definitions", "Domain events: OrderCreated, OrderPaid, OrderFulfilled, etc.")
+}
+
+Boundary(orderInfra, "Infrastructure & Integration") {
+  Code(orderRepository, "OrderRepository", "EF Core Repository", "Persists aggregates to Azure SQL, handles optimistic concurrency.")
+  Code(orderReadModel, "OrderReadModelProjector", "Projection Handler", "Builds denormalized dashboards for order status & SLAs.")
+  Code(paymentFacade, "PaymentGatewayFacade", "Adapter", "Wraps payment provider SDK for auth/capture/refund.")
+  Code(inventoryFacade, "InventoryReservationClient", "Adapter", "Calls inventory API/events for reserve/release.")
+  Code(shippingFacade, "ShippingFulfillmentClient", "Adapter", "Requests label creation, shipment updates.")
+  Code(taxFacade, "TaxCalculationClient", "Adapter", "Delegates to tax module/service for order tax lines.")
+  Code(accountingPublisher, "AccountingEventPublisher", "Integration Publisher", "Emits journal commands to accounting module.")
+  Code(orderEventPublisher, "OrderEventPublisher", "Event Dispatcher", "Publishes domain events to Service Bus topics.")
+  Code(orderCache, "OrderCache", "Redis Cache", "Caches hot orders for CSRs and SLA checks.")
+}
+
+Rel(orderController, orderAppService, "Invokes")
+Rel(rmaController, rmaAppService, "Invokes")
+Rel(orderAppService, orderValidator, "Validates")
+Rel(rmaAppService, rmaValidator, "Validates")
+Rel(orderAppService, orderAggregate, "Loads & executes commands")
+Rel(orderAppService, allocationPolicy, "Consults")
+Rel(orderAppService, paymentPolicy, "Consults")
+Rel(orderAppService, orderSaga, "Starts/advances saga")
+Rel(orderSaga, orderAggregate, "Applies saga decisions")
+Rel(orderSaga, paymentFacade, "Capture/void payments")
+Rel(orderSaga, inventoryFacade, "Reserve/release stock")
+Rel(orderSaga, shippingFacade, "Request shipment")
+Rel(orderSaga, taxFacade, "Ensure tax locked")
+Rel(orderSaga, accountingPublisher, "Emit revenue/COGS events")
+Rel(rmaAppService, rmaAggregate, "Loads & mutates")
+Rel(rmaAppService, rmaPolicy, "Determines disposition")
+Rel(refundSaga, rmaAggregate, "Coordinates refund outcome")
+Rel(refundSaga, paymentFacade, "Issue refund")
+Rel(refundSaga, accountingPublisher, "Post credit memo")
+Rel(orderAggregate, orderRepository, "Persist")
+Rel(rmaAggregate, orderRepository, "Persist")
+Rel(orderRepository, orderCache, "Update cache")
+Rel(orderAppService, orderReadModel, "Project to read model")
+Rel(orderAggregate, orderEvents, "Emits")
+Rel(orderEvents, orderEventPublisher, "Dispatch")
+Rel(orderReadModel, orderCache, "Warm cache")
+Rel(rmaAppService, shippingFacade, "Request return labels")
+
+@enduml

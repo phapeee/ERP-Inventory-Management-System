@@ -1,0 +1,73 @@
+@startuml PineConePro_ERPIMS_C4_AnalyticsModule
+!include ../C4_Code.puml
+
+LAYOUT_WITH_LEGEND()
+
+Boundary(analyticsApi, "API Layer") {
+  Code(analyticsController, "AnalyticsController", "ASP.NET Core Controller", "Serves dashboards, metric queries, alert configuration APIs.")
+  Code(reportController, "ReportController", "ASP.NET Core Controller", "Triggers ad-hoc report exports, returns file artifacts.")
+}
+
+Boundary(analyticsApp, "Application Layer") {
+  Code(analyticsAppService, "AnalyticsApplicationService", "Service", "Handles query orchestration, alert scheduling, subscription management.")
+  Code(alertConfigService, "AlertConfigurationService", "Service", "CRUD for alert rules, thresholds, recipients, maintenance windows.")
+  Code(reportScheduler, "ReportScheduler", "Workflow", "Schedules periodic report generation jobs.")
+  Code(datasetAdapter, "DatasetAdapter", "Facade", "Normalizes query requests to analytics read store / warehouse.")
+}
+
+Boundary(analyticsStream, "Streaming & Aggregation") {
+  Code(eventConsumer, "DomainEventConsumer", "Stream Processor", "Consumes domain events from Service Bus topics.")
+  Code(metricNormalizer, "MetricNormalizer", "Processor", "Transforms events into metric-friendly schema.")
+  Code(kpiAggregator, "KpiAggregator", "Aggregation Engine", "Calculates rolling KPIs (order SLA, inventory accuracy, vendor OTIF).")
+  Code(anomalyDetector, "AnomalyDetector", "ML Hook", "Detects anomalies using statistical/ML models.")
+  Code(alertEvaluator, "AlertEvaluator", "Rule Engine", "Evaluates KPI vs thresholds, anomaly outcomes, schedules alert actions.")
+  Code(alertDispatcher, "AlertDispatcher", "Workflow", "Routes alerts to email/SMS/Teams, opens incidents.")
+}
+
+Boundary(analyticsData, "Data Storage & Access") {
+  Code(analyticsWarehouse, "AnalyticsWarehouse", "Synapse/DataMart", "Holds time-series aggregates, fact tables, dimensions.")
+  Code(analyticsReadModels, "AnalyticsReadModels", "Read Store", "Pre-aggregated views for dashboards, cached JSON payloads.")
+  Code(alertRepository, "AlertRepository", "EF Core Repository", "Persists alert definitions, schedules, notification history.")
+  Code(subscriptionRepository, "SubscriptionRepository", "Repository", "Stores user recipients, delivery prefs.")
+  Code(dataLakeWriter, "DataLakeWriter", "Storage Client", "Archives raw events, snapshots to Data Lake for deep analysis.")
+  Code(cacheLayer, "AnalyticsCache", "Redis Cache", "Caches hot KPI responses, alert states.")
+}
+
+Boundary(analyticsIntegration, "Integrations") {
+  Code(notificationGateway, "NotificationGateway", "Adapter", "Connects to email/SMS/Teams services.")
+  Code(observabilityBridge, "ObservabilityBridge", "Adapter", "Publishes metrics to Azure Monitor/App Insights.")
+  Code(biPublisher, "BiDatasetPublisher", "Adapter", "Expose curated datasets to Power BI/Tableau.")
+}
+
+Rel(analyticsController, analyticsAppService, "Invokes")
+Rel(reportController, reportScheduler, "Schedules/export")
+Rel(analyticsAppService, alertConfigService, "Configures alerts")
+Rel(analyticsAppService, datasetAdapter, "Fetch datasets")
+Rel(alertConfigService, alertRepository, "Persist rules")
+Rel(alertConfigService, subscriptionRepository, "Persist recipients")
+Rel(datasetAdapter, analyticsReadModels, "Query cached views")
+Rel(datasetAdapter, analyticsWarehouse, "Query aggregates")
+Rel(analyticsAppService, cacheLayer, "Serve cached KPIs")
+Rel(eventConsumer, metricNormalizer, "Feeds")
+Rel(metricNormalizer, dataLakeWriter, "Archive raw & normalized events")
+Rel(metricNormalizer, kpiAggregator, "Supply metrics")
+Rel(kpiAggregator, analyticsReadModels, "Update aggregates")
+Rel(kpiAggregator, cacheLayer, "Warm cache")
+Rel(kpiAggregator, anomalyDetector, "Provide metric streams")
+Rel(anomalyDetector, alertEvaluator, "Flag anomalies")
+Rel(alertEvaluator, alertRepository, "Load alert definitions")
+Rel(alertEvaluator, cacheLayer, "Store alert state")
+Rel(alertEvaluator, alertDispatcher, "Trigger notifications")
+Rel(alertDispatcher, notificationGateway, "Send messages")
+Rel(alertDispatcher, cacheLayer, "Update alert history")
+Rel(reportScheduler, analyticsWarehouse, "Query data")
+Rel(reportScheduler, notificationGateway, "Deliver reports")
+Rel(observabilityBridge, observabilityBridge, "")
+Rel(kpiAggregator, observabilityBridge, "Emit metrics")
+Rel(cacheLayer, analyticsController, "Serve quick responses")
+Rel(biPublisher, analyticsWarehouse, "Publish datasets")
+Rel(notificationGateway, cacheLayer, "Record delivery status")
+Rel(observabilityBridge, analyticsWarehouse, "Publish telemetry")
+Rel(anomalyDetector, analyticsWarehouse, "Persist anomaly context")
+
+@enduml

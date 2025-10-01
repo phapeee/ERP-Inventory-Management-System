@@ -1,0 +1,81 @@
+@startuml PineConePro_ERPIMS_C4_InventoryModule
+!include ../C4_Code.puml
+
+LAYOUT_WITH_LEGEND()
+
+Boundary(invApi, "API & RF Layer") {
+  Code(inventoryController, "InventoryController", "ASP.NET Core Controller", "REST endpoints for receiving, transfers, adjustments, ATP queries.")
+  Code(rfHub, "RfSignalHub", "SignalR Hub", "Pushes RF tasks, receives scan updates in real time.")
+}
+
+Boundary(invApp, "Application Layer") {
+  Code(inventoryAppService, "InventoryApplicationService", "Service", "Orchestrates RF workflows, validates operations, publishes events.")
+  Code(receivingFlow, "ReceivingWorkflowHandler", "Workflow", "Matches ASN, captures lots/serials, quality inspection.")
+  Code(putawayFlow, "PutAwayPlanner", "Workflow", "Determines bins, updates tasks for RF users.")
+  Code(pickingFlow, "PickingWavePlanner", "Workflow", "Creates pick waves, allocations, replenishment tasks.")
+  Code(cycleCountFlow, "CycleCountScheduler", "Workflow", "Generates ABC cycle count plans, monitors completion.")
+  Code(inventoryValidator, "InventoryValidator", "FluentValidation", "Checks bins, permissions, lot rules.")
+}
+
+Boundary(invDomain, "Domain Layer") {
+  Code(inventoryItemAgg, "InventoryItemAggregate", "DDD Aggregate", "Maintains on-hand, reserved, ATP per location/bin.")
+  Code(lotAgg, "LotAggregate", "DDD Aggregate", "Stores lot metadata, expiry, supplier links.")
+  Code(serialAgg, "SerialAggregate", "DDD Aggregate", "Tracks serialized items, warranty, assignment.")
+  Code(binPolicy, "BinAssignmentPolicy", "Domain Policy", "Calculates optimal bin based on capacity, hazmat, velocity.")
+  Code(pickingPolicy, "PickingPolicy", "Domain Policy", "Determines wave strategy, FEFO/FIFO rules.")
+  Code(reorderPolicy, "ReorderSignalPolicy", "Domain Policy", "Identifies reorder point breaches, triggers purchasing.")
+  Code(inventoryEvents, "InventoryDomainEvents", "Event Definitions", "item-received, item-adjusted, transfer-completed, lot-expired.")
+}
+
+Boundary(invInfra, "Infrastructure & Integration") {
+  Code(inventoryRepository, "InventoryRepository", "EF Core Repository", "Persists inventory, lot, serial aggregates.")
+  Code(taskRepository, "InventoryTaskRepository", "Repository", "Stores RF tasks, assignments, status.")
+  Code(atpProjector, "AtpProjectionHandler", "Projection", "Builds ATP snapshots for order allocation.")
+  Code(binHeatmapProjector, "BinHeatmapProjector", "Projection", "Aggregates velocity, saturation metrics.")
+  Code(changeFeedPublisher, "InventoryEventPublisher", "Event Dispatcher", "Publishes inventory domain events to Service Bus.")
+  Code(inventoryCache, "InventoryCache", "Redis Cache", "Caches ATP results and RF task lists.")
+  Code(orderClient, "OrderAllocationClient", "Adapter", "Notifies order module about reserves/releases.")
+  Code(purchasingClient, "PurchasingReplenishmentClient", "Adapter", "Sends replenishment alerts, receives ASN confirmations.")
+  Code(shippingClient, "ShippingPickClient", "Adapter", "Provides pick completion, handoff to packing.")
+  Code(threePlClient, "ThirdPartyLogisticsClient", "Adapter", "Syncs quantities with 3PL warehouses.")
+  Code(blobClient, "ReceivingDocumentClient", "Blob Client", "Stores receiving docs, inspection images.")
+}
+
+Rel(inventoryController, inventoryAppService, "Invokes")
+Rel(rfHub, inventoryAppService, "Routes RF commands")
+Rel(inventoryAppService, inventoryValidator, "Validates")
+Rel(inventoryAppService, receivingFlow, "Executes")
+Rel(inventoryAppService, putawayFlow, "Executes")
+Rel(inventoryAppService, pickingFlow, "Executes")
+Rel(inventoryAppService, cycleCountFlow, "Executes")
+Rel(receivingFlow, inventoryItemAgg, "Update qty")
+Rel(receivingFlow, lotAgg, "Capture lot")
+Rel(receivingFlow, serialAgg, "Register serial")
+Rel(putawayFlow, binPolicy, "Consults")
+Rel(pickingFlow, pickingPolicy, "Consults")
+Rel(cycleCountFlow, reorderPolicy, "Feeds reorder signals")
+Rel(inventoryItemAgg, inventoryRepository, "Persist")
+Rel(lotAgg, inventoryRepository, "Persist")
+Rel(serialAgg, inventoryRepository, "Persist")
+Rel(inventoryRepository, inventoryCache, "Refresh cache")
+Rel(inventoryRepository, atpProjector, "Trigger projection")
+Rel(inventoryRepository, binHeatmapProjector, "Trigger projection")
+Rel(atpProjector, inventoryCache, "Warm cache")
+Rel(binHeatmapProjector, inventoryCache, "Update heatmaps")
+Rel(inventoryEvents, changeFeedPublisher, "Dispatch")
+Rel(inventoryItemAgg, inventoryEvents, "Emit events")
+Rel(lotAgg, inventoryEvents, "Emit events")
+Rel(serialAgg, inventoryEvents, "Emit events")
+Rel(changeFeedPublisher, orderClient, "Notify reserves/releases")
+Rel(changeFeedPublisher, purchasingClient, "Notify reorder triggers")
+Rel(changeFeedPublisher, shippingClient, "Notify pick completion")
+Rel(changeFeedPublisher, threePlClient, "Sync updates")
+Rel(inventoryAppService, blobClient, "Upload docs")
+Rel(taskRepository, inventoryCache, "Publish RF tasks")
+Rel(inventoryAppService, taskRepository, "Assign tasks")
+Rel(orderClient, inventoryAppService, "Reserve confirmations")
+Rel(purchasingClient, receivingFlow, "Send ASN data")
+Rel(shippingClient, pickingFlow, "Confirm picks")
+Rel(threePlClient, inventoryAppService, "Sync adjustments")
+
+@enduml

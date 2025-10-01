@@ -1,0 +1,32 @@
+' convert it with -DRELATIVE_INCLUDE=relative to force local component include
+!if %variable_exists("RELATIVE_INCLUDE")
+  !include ./C4_Component.puml
+!else
+  !include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+!endif
+
+' Minimal Code diagram helpers mapping to Component macros
+!unquoted procedure Code($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  Component($alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure CodeDb($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  ComponentDb($alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure CodeQueue($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  ComponentQueue($alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure Code_Ext($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  Component_Ext($alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure CodeDb_Ext($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  ComponentDb_Ext($alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+
+!unquoted procedure CodeQueue_Ext($alias, $label, $techn="", $descr="", $sprite="", $tags="", $link="")
+  ComponentQueue_Ext($alias, $label, $techn, $descr, $sprite, $tags, $link)
+!endprocedure
+

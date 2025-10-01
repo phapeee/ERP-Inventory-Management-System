@@ -1,0 +1,63 @@
+@startuml PineConePro_ERPIMS_C4_Forecasting
+!include ../C4_Code.puml
+
+LAYOUT_WITH_LEGEND()
+
+Boundary(forecastApi, "API Layer") {
+  Code(forecastController, "ForecastController", "ASP.NET Core Controller", "Run forecasts, retrieve EOQ recommendations, manage overrides.")
+}
+
+Boundary(forecastApp, "Application Layer") {
+  Code(forecastAppService, "ForecastApplicationService", "Service", "Coordinates dataset build, ML execution, EOQ calculation, overrides.")
+  Code(overrideService, "ForecastOverrideService", "Service", "Applies planner overrides with approvals.")
+  Code(forecastValidator, "ForecastRequestValidator", "FluentValidation", "Validates horizon, grouping, scenario parameters.")
+  Code(simulationHandler, "SimulationHandler", "Handler", "Runs what-if simulations against forecast results.")
+  Code(scheduleHandler, "ForecastScheduleHandler", "Workflow", "Schedules nightly/weekly runs and retraining jobs.")
+}
+
+Boundary(forecastDomain, "Domain Layer") {
+  Code(forecastAggregate, "ForecastAggregate", "DDD Aggregate", "Stores forecast series, metadata, accuracy metrics.")
+  Code(eoqAggregate, "EoqRecommendation", "Entity", "Represents EOQ outputs, safety stock, reorder points.")
+  Code(datasetBuilder, "DatasetBuilder", "Domain Service", "Aggregates historical sales, inventory, promotions, lead times.")
+  Code(mlPipeline, "MlPipeline", "Domain Service", "Preprocesses features, invokes ML models.")
+  Code(eoqCalculator, "EoqCalculator", "Domain Service", "Calculates EOQ/safety stock using demand & lead time variability.")
+  Code(overridePolicy, "OverridePolicy", "Domain Policy", "Applies governance for manual adjustments and approvals.")
+  Code(forecastEvents, "ForecastDomainEvents", "Event Definitions", "demand-forecast-generated, reorder-recommendation-created.")
+}
+
+Boundary(forecastInfra, "Infrastructure & Integration") {
+  Code(forecastRepository, "ForecastRepository", "EF Core Repository", "Persists forecasts, EOQ suggestions, overrides.")
+  Code(featureStore, "FeatureStore", "Data Access", "Reads/writes features to analytics warehouse.")
+  Code(readModelProjector, "ForecastReadModelProjector", "Projection", "Builds query-optimized tables for planners & purchasing.")
+  Code(cacheFacade, "ForecastCache", "Redis Cache", "Caches latest forecasts and EOQ suggestions.")
+  Code(mlClient, "MlClient", "Adapter", "Calls Azure ML endpoints for scoring.")
+  Code(purchasingPublisher, "PurchasingRecommendationPublisher", "Integration Publisher", "Publishes reorder events for purchasing module.")
+  Code(analyticsPublisher, "ForecastAnalyticsPublisher", "Integration Publisher", "Sends accuracy metrics to analytics module.")
+  Code(eventPublisher, "ForecastEventPublisher", "Event Dispatcher", "Dispatches domain events to Service Bus.")
+}
+
+Rel(forecastController, forecastAppService, "Invokes")
+Rel(forecastAppService, forecastValidator, "Validates")
+Rel(forecastAppService, datasetBuilder, "Build dataset")
+Rel(datasetBuilder, featureStore, "Read/write features")
+Rel(forecastAppService, mlPipeline, "Run ML")
+Rel(mlPipeline, mlClient, "Score models")
+Rel(forecastAppService, forecastAggregate, "Persist forecasts")
+Rel(forecastAggregate, forecastRepository, "Save")
+Rel(forecastRepository, cacheFacade, "Update cache")
+Rel(forecastRepository, readModelProjector, "Trigger projection")
+Rel(readModelProjector, cacheFacade, "Warm planner views")
+Rel(forecastAppService, eoqCalculator, "Compute EOQ")
+Rel(eoqCalculator, eoqAggregate, "Create suggestions")
+Rel(eoqAggregate, forecastRepository, "Persist")
+Rel(overrideService, overridePolicy, "Enforce governance")
+Rel(overrideService, forecastRepository, "Persist overrides")
+Rel(scheduleHandler, forecastAppService, "Trigger runs")
+Rel(forecastAggregate, forecastEvents, "Emit events")
+Rel(forecastEvents, eventPublisher, "Dispatch")
+Rel(purchasingPublisher, eventPublisher, "Publish reorder suggestion")
+Rel(analyticsPublisher, eventPublisher, "Publish accuracy metrics")
+Rel(simulationHandler, forecastRepository, "Read data")
+Rel(simulationHandler, cacheFacade, "Cache results")
+
+@enduml

@@ -1,0 +1,60 @@
+@startuml PineConePro_ERPIMS_C4_LightManufacturing
+!include ../C4_Code.puml
+
+LAYOUT_WITH_LEGEND()
+
+Boundary(mfgApi, "API Layer") {
+  Code(mfgController, "ManufacturingController", "ASP.NET Core Controller", "Create work orders, report completions, manage BOM versions.")
+}
+
+Boundary(mfgApp, "Application Layer") {
+  Code(mfgAppService, "ManufacturingApplicationService", "Service", "Coordinates assembly/disassembly workflows, BOM maintenance.")
+  Code(workOrderScheduler, "WorkOrderScheduler", "Workflow Handler", "Creates work orders from demand & buffer policies.")
+  Code(bomVersionHandler, "BomVersionHandler", "Handler", "Manages BOM revisions, approvals, effectivity.")
+  Code(mfgValidator, "ManufacturingValidator", "FluentValidation", "Validates quantities, component availability, labor entries.")
+  Code(reportingHandler, "ProductionReportingHandler", "Handler", "Captures labor, scrap, yields.")
+}
+
+Boundary(mfgDomain, "Domain Layer") {
+  Code(workOrderAggregate, "WorkOrderAggregate", "DDD Aggregate", "Represents work order lifecycle, tasks, components, labor.")
+  Code(bomAggregate, "BomAggregate", "DDD Aggregate", "Defines component structure, yields, effectivity.")
+  Code(backflushPolicy, "BackflushPolicy", "Domain Policy", "Determines component consumption rules.")
+  Code(costingService, "CostingService", "Domain Service", "Calculates cost rollups and variances.")
+  Code(mfgEvents, "ManufacturingDomainEvents", "Event Definitions", "kit-assembled, kit-disassembled, workorder-shortage.")
+}
+
+Boundary(mfgInfra, "Infrastructure & Integration") {
+  Code(mfgRepository, "ManufacturingRepository", "EF Core Repository", "Persists work orders, BOMs, labor records.")
+  Code(projectionHandler, "ManufacturingReadModelProjector", "Projection", "Builds dashboards for throughput, WIP, scrap.")
+  Code(cacheFacade, "ManufacturingCache", "Redis Cache", "Caches active work orders, BOMs.")
+  Code(laborClient, "LaborCaptureClient", "Adapter", "Integrates with labor/time tracking system.")
+  Code(inventoryClient, "InventoryIntegrationClient", "Adapter", "Updates inventory with component consumption & finished goods output.")
+  Code(orderClient, "OrderSignalClient", "Adapter", "Feeds availability updates to order module.")
+  Code(analyticsPublisher, "ManufacturingAnalyticsPublisher", "Integration Publisher", "Sends metrics to analytics module.")
+  Code(eventPublisher, "ManufacturingEventPublisher", "Event Dispatcher", "Publishes domain events to Service Bus.")
+}
+
+Rel(mfgController, mfgAppService, "Invokes")
+Rel(mfgAppService, mfgValidator, "Validates")
+Rel(mfgAppService, workOrderScheduler, "Create work orders")
+Rel(mfgAppService, bomVersionHandler, "Update BOMs")
+Rel(mfgAppService, reportingHandler, "Record completion")
+Rel(workOrderScheduler, workOrderAggregate, "Mutate aggregate")
+Rel(bomVersionHandler, bomAggregate, "Mutate aggregate")
+Rel(reportingHandler, workOrderAggregate, "Update status")
+Rel(workOrderAggregate, mfgRepository, "Persist")
+Rel(bomAggregate, mfgRepository, "Persist")
+Rel(mfgRepository, projectionHandler, "Trigger projections")
+Rel(projectionHandler, cacheFacade, "Warm dashboards")
+Rel(workOrderAggregate, backflushPolicy, "Consult rules")
+Rel(backflushPolicy, inventoryClient, "Apply consumption")
+Rel(reportingHandler, costingService, "Calculate variance")
+Rel(costingService, mfgRepository, "Persist costing data")
+Rel(workOrderAggregate, mfgEvents, "Emit events")
+Rel(mfgEvents, eventPublisher, "Dispatch")
+Rel(reportingHandler, laborClient, "Send labor entries")
+Rel(eventPublisher, inventoryClient, "Notify inventory changes")
+Rel(eventPublisher, orderClient, "Notify availability")
+Rel(analyticsPublisher, eventPublisher, "Publish KPIs")
+
+@enduml

@@ -1,0 +1,66 @@
+@startuml PineConePro_ERPIMS_C4_Integrations
+!include ../C4_Code.puml
+
+LAYOUT_WITH_LEGEND()
+
+Boundary(intApi, "API Layer") {
+  Code(integrationAdminController, "IntegrationAdminController", "ASP.NET Core Controller", "Manage partner credentials, monitor document/batch status, retry failures.")
+}
+
+Boundary(intApp, "Application Layer") {
+  Code(ediAppService, "EdiApplicationService", "Service", "Orchestrates inbound/outbound EDI documents, acknowledgements.")
+  Code(threePlAppService, "ThreePlApplicationService", "Service", "Manages 3PL API interactions, sync cycles, exception handling.")
+  Code(retryScheduler, "IntegrationRetryScheduler", "Workflow", "Handles retries, escalation when partners fail.")
+  Code(mappingRegistry, "MappingRegistry", "Service", "Stores mapping templates per partner & document type.")
+}
+
+Boundary(intDomain, "Domain Layer") {
+  Code(ediDocument, "EdiDocumentAggregate", "DDD Aggregate", "Tracks EDI lifecycle, status, acknowledgements.")
+  Code(threePlTransaction, "ThreePlTransactionAggregate", "DDD Aggregate", "Represents 3PL sync sessions, inventory snapshots, shipments.")
+  Code(ediTranslator, "EdiTranslator", "Domain Service", "Transforms canonical PO/ASN/Invoice to partner-specific segments.")
+  Code(ediEnvelope, "EdiEnvelopeService", "Domain Service", "Manages interchange/control numbers, functional groups.")
+  Code(threePlSyncPolicy, "ThreePlSyncPolicy", "Domain Policy", "Determines sync cadence, reconciliation rules.")
+  Code(integrationEvents, "IntegrationDomainEvents", "Event Definitions", "edi.message-sent, edi.message-received, 3pl.sync-started/completed.")
+}
+
+Boundary(intInfra, "Infrastructure & Integration") {
+  Code(ediRepository, "EdiRepository", "EF Core Repository", "Persists EDI documents, statuses, errors.")
+  Code(threePlRepository, "ThreePlRepository", "EF Core Repository", "Stores 3PL transactions, API tokens, inventory snapshots.")
+  Code(blobArchive, "IntegrationBlobArchive", "Storage Client", "Archives raw EDI files and 3PL reports.")
+  Code(queuePublisher, "IntegrationEventPublisher", "Event Dispatcher", "Publishes integration events to Service Bus.")
+  Code(fileTransferClient, "FileTransferClient", "Adapter", "SFTP/FTP exchange for EDI files.")
+  Code(ediParser, "EdiParser", "Adapter", "Parses raw EDI data into canonical objects.")
+  Code(ediSerializer, "EdiSerializer", "Adapter", "Generates EDI payloads from canonical models.")
+  Code(restClientFactory, "RestClientFactory", "Adapter", "Creates REST clients for each 3PL partner.")
+  Code(webhookListener, "WebhookListener", "Adapter", "Receives inbound webhooks from 3PL partners.")
+  Code(alertPublisher, "IntegrationAlertPublisher", "Integration Publisher", "Notifies ops teams of failures.")
+}
+
+Rel(integrationAdminController, ediAppService, "Manage documents")
+Rel(integrationAdminController, threePlAppService, "Manage 3PL configs")
+Rel(ediAppService, mappingRegistry, "Load mappings")
+Rel(ediAppService, ediTranslator, "Transform canonical")
+Rel(ediTranslator, ediSerializer, "Generate EDI")
+Rel(ediAppService, ediEnvelope, "Wrap interchange")
+Rel(ediAppService, fileTransferClient, "Send/receive files")
+Rel(ediAppService, ediParser, "Parse incoming files")
+Rel(ediAppService, ediDocument, "Mutate document state")
+Rel(ediDocument, ediRepository, "Persist")
+Rel(ediRepository, blobArchive, "Archive raw payload")
+Rel(ediDocument, integrationEvents, "Emit events")
+Rel(integrationEvents, queuePublisher, "Dispatch")
+Rel(retryScheduler, ediAppService, "Retry failed docs")
+Rel(ediAppService, alertPublisher, "Notify failures")
+
+Rel(threePlAppService, restClientFactory, "Invoke partner APIs")
+Rel(threePlAppService, webhookListener, "Receive callbacks")
+Rel(threePlAppService, threePlSyncPolicy, "Determine cadence")
+Rel(threePlAppService, threePlTransaction, "Update sync state")
+Rel(threePlTransaction, threePlRepository, "Persist")
+Rel(threePlRepository, blobArchive, "Store reports")
+Rel(threePlTransaction, integrationEvents, "Emit events")
+Rel(threePlAppService, queuePublisher, "Dispatch events")
+Rel(retryScheduler, threePlAppService, "Retry sync")
+Rel(threePlAppService, alertPublisher, "Raise alerts")
+
+@enduml
