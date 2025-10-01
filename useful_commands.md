@@ -24,3 +24,7 @@ dotnet new apicontroller \
   -o Controllers \
   --namespace ERP_backend.Controllers
   
+## Run Plantuml with jetty or tomcat container
+
+docker run -d -p 8080:8080 plantuml/plantuml-server:jetty
+docker run -d -p 8080:8080 plantuml/plantuml-server:tomcat
