@@ -121,10 +121,9 @@ jobs:
           POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
           POSTMAN_TEST_COLLECTION_URL: ${{ vars.POSTMAN_TEST_COLLECTION_URL }}
           POSTMAN_TEST_ENV_URL: ${{ vars.POSTMAN_TEST_ENV_URL }}
-          POSTMAN_SECRETS: POSTMAN_API_KEY POSTMAN_TEST_COLLECTION_URL POSTMAN_TEST_ENV_URL 
         run: |
           missing=0
-          for name in POSTMAN_SECRETS; do
+          for name in POSTMAN_API_KEY POSTMAN_TEST_COLLECTION_URL POSTMAN_TEST_ENV_URL; do
             value="${!name}"
             if [ -z "$value" ]; then
               echo "::error::$name is not configured" >&2
@@ -140,6 +139,7 @@ jobs:
         env:
           POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
           POSTMAN_TEST_COLLECTION_URL: ${{ vars.POSTMAN_TEST_COLLECTION_URL }}
+          POSTMAN_TEST_ENV_URL: ${{ vars.POSTMAN_TEST_ENV_URL }}
         run: |
           newman run "${POSTMAN_TEST_COLLECTION_URL}?apikey=${POSTMAN_API_KEY}" \
             --environment "${POSTMAN_TEST_ENV_URL}?apikey=${POSTMAN_API_KEY}" \
