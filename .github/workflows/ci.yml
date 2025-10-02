@@ -105,7 +105,7 @@ jobs:
     needs: backend
     services:
       postgres:
-        image: postgres:16
+        image: postgres:17
         env:
           POSTGRES_USER: erp_ci
           POSTGRES_PASSWORD: secret
