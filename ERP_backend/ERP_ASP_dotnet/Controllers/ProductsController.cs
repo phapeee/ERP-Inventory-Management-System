@@ -7,10 +7,9 @@ namespace ERP_backend.Controllers
 {
     [Route("api/[controller]")]
     [ApiController]
-    public class ProductsController : ControllerBase
+    public class ProductsController(AppDb db) : ControllerBase
     {
-        private readonly AppDb _db;
-        public ProductsController(AppDb db) => _db = db;
+        private readonly AppDb _db = db;
 
         // GET /api/products
         [HttpGet]
@@ -44,7 +43,7 @@ namespace ERP_backend.Controllers
 
             _db.Entry(input).State = EntityState.Modified;
             await _db.SaveChangesAsync();
-            return NoContent();
+            return Ok();
         }
 
         // DELETE /api/products/1
