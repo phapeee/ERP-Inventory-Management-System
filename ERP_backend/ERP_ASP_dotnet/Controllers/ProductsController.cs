@@ -43,7 +43,7 @@ namespace ERP_backend.Controllers
 
             _db.Entry(input).State = EntityState.Modified;
             await _db.SaveChangesAsync();
-            return NoContent();
+            return Ok();
         }
 
         // DELETE /api/products/1
