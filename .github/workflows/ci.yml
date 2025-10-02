@@ -120,14 +120,19 @@ jobs:
         env:
           POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
           POSTMAN_TEST_COLLECTION_URL: ${{ vars.POSTMAN_TEST_COLLECTION_URL }}
+          POSTMAN_TEST_ENV_URL: ${{ vars.POSTMAN_TEST_ENV_URL }}
+          POSTMAN_SECRETS: POSTMAN_API_KEY POSTMAN_TEST_COLLECTION_URL POSTMAN_TEST_ENV_URL 
         run: |
-          if [ -z "$POSTMAN_API_KEY" ]; then
-            echo "::error::POSTMAN_API_KEY secret is not configured" >&2
-            exit 1
-          fi
+          missing=0
+          for name in POSTMAN_SECRETS; do
+            value="${!name}"
+            if [ -z "$value" ]; then
+              echo "::error::$name is not configured" >&2
+              missing=1
+            fi
+          done
 
-          if [ -z "$POSTMAN_TEST_COLLECTION_URL" ]; then
-            echo "::error::POSTMAN_TEST_COLLECTION_URL variable is not configured" >&2
+          if [ "$missing" -ne 0 ]; then
             exit 1
           fi
 
@@ -137,6 +142,7 @@ jobs:
           POSTMAN_TEST_COLLECTION_URL: ${{ vars.POSTMAN_TEST_COLLECTION_URL }}
         run: |
           newman run "${POSTMAN_TEST_COLLECTION_URL}?apikey=${POSTMAN_API_KEY}" \
+            --environment "${POSTMAN_TEST_ENV_URL}?apikey=${POSTMAN_API_KEY}" \
             --reporters cli,junit \
             --reporter-junit-export newman-report.xml
 
