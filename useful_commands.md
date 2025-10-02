@@ -6,7 +6,7 @@ docker run --name pg \
   -e POSTGRES_DB=erp \
   -p 5432:5432 \
   -v pgdata:/var/lib/postgresql/data \
-  -d postgres:16
+  -d postgres:17
 
 ## API controller with CRUD actions using EF Core (not working on .NET 9)
 
