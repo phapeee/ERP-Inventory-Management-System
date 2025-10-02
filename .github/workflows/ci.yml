@@ -103,9 +103,55 @@ jobs:
     name: API Tests (Postman)
     runs-on: ubuntu-latest
     needs: backend
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: erp_ci
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: erp_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U erp_ci -d erp_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     steps:
       - name: Checkout
         uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '9.0.x'
+          include-prerelease: true
+
+      - name: Restore backend dependencies
+        working-directory: ERP_backend
+        run: dotnet restore ERP-Inventory-Management-System.sln
+
+      - name: Build backend
+        working-directory: ERP_backend
+        run: dotnet build ERP-Inventory-Management-System.sln --configuration Release --no-restore
+
+      - name: Start API
+        working-directory: ERP_backend
+        env:
+          DB_CONNECTION_STRING: Host=localhost;Port=5432;Database=erp_ci;Username=erp_ci;Password=secret;Ssl Mode=Disable
+        run: |
+          dotnet run --project ERP_ASP_dotnet/ERP_backend.csproj --configuration Release --no-launch-profile --urls http://0.0.0.0:5050 &
+          echo $! > api.pid
+          for attempt in {1..30}; do
+            if curl -fsS http://127.0.0.1:5050/health > /dev/null 2>&1; then
+              exit 0
+            fi
+            if [ $attempt -eq 30 ]; then
+              echo "API failed to start" >&2
+              exit 1
+            fi
+            sleep 2
+          done
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -140,11 +186,20 @@ jobs:
           POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
           POSTMAN_TEST_COLLECTION_URL: ${{ vars.POSTMAN_TEST_COLLECTION_URL }}
           POSTMAN_TEST_ENV_URL: ${{ vars.POSTMAN_TEST_ENV_URL }}
+          POSTMAN_BASE_URL: http://127.0.0.1:5050
         run: |
           newman run "${POSTMAN_TEST_COLLECTION_URL}?apikey=${POSTMAN_API_KEY}" \
             --environment "${POSTMAN_TEST_ENV_URL}?apikey=${POSTMAN_API_KEY}" \
+            --env-var baseUrl=${POSTMAN_BASE_URL} \
             --reporters cli,junit \
             --reporter-junit-export newman-report.xml
+
+      - name: Stop API
+        if: always()
+        run: |
+          if [ -f api.pid ]; then
+            kill $(cat api.pid) || true
+          fi
 
       - name: Upload Newman report
         if: always()
