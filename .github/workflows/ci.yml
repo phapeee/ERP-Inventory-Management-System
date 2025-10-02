@@ -16,6 +16,20 @@ jobs:
   backend:
     name: Backend (.NET)
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: erp_ci
+          POSTGRES_PASSWORD: secret
+          POSTGRES_DB: erp_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U erp_ci -d erp_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: ERP_backend
@@ -23,7 +37,7 @@ jobs:
       DOTNET_NOLOGO: true
       DOTNET_CLI_TELEMETRY_OPTOUT: 1
       DOTNET_SKIP_FIRST_TIME_EXPERIENCE: true
-      DB_CONNECTION_STRING: ${{ secrets.DB_CONNECTION_STRING }}
+      DB_CONNECTION_STRING: Host=localhost;Port=5432;Database=erp_ci;Username=erp_ci;Password=secret;Ssl Mode=Disable
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -33,6 +47,11 @@ jobs:
         with:
           dotnet-version: '9.0.x'
           include-prerelease: true
+
+      - name: Install dotnet-ef tool
+        run: |
+          dotnet tool install --global dotnet-ef
+          echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
       - name: Cache NuGet packages
         uses: actions/cache@v4
@@ -44,6 +63,9 @@ jobs:
 
       - name: Restore dependencies
         run: dotnet restore ERP-Inventory-Management-System.sln
+
+      - name: Apply EF Core migrations
+        run: dotnet ef database update --project ERP_ASP_dotnet/ERP_backend.csproj --startup-project ERP_ASP_dotnet/ERP_backend.csproj
 
       - name: Build
         run: dotnet build ERP-Inventory-Management-System.sln --configuration Release --no-restore
@@ -80,6 +102,7 @@ jobs:
   api-tests:
     name: API Tests (Postman)
     runs-on: ubuntu-latest
+    needs: backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -91,6 +114,22 @@ jobs:
 
       - name: Install Newman
         run: npm install --global newman
+
+      - name: Verify Postman inputs
+        shell: bash
+        env:
+          POSTMAN_API_KEY: ${{ secrets.POSTMAN_API_KEY }}
+          POSTMAN_TEST_COLLECTION_URL: ${{ vars.POSTMAN_TEST_COLLECTION_URL }}
+        run: |
+          if [ -z "$POSTMAN_API_KEY" ]; then
+            echo "::error::POSTMAN_API_KEY secret is not configured" >&2
+            exit 1
+          fi
+
+          if [ -z "$POSTMAN_TEST_COLLECTION_URL" ]; then
+            echo "::error::POSTMAN_TEST_COLLECTION_URL variable is not configured" >&2
+            exit 1
+          fi
 
       - name: Run Postman collection
         env:
