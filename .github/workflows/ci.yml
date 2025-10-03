@@ -72,6 +72,12 @@ jobs:
       - name: Test
         run: dotnet test ERP-Inventory-Management-System.sln --configuration Release --no-build --verbosity normal
 
+      - name: Upload API build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: erpapi-build
+          path: ERP_backend/ErpApi/bin/Release/net9.0
+
   frontend:
     name: Frontend (Angular)
     runs-on: ubuntu-latest
@@ -135,25 +141,23 @@ jobs:
           dotnet tool install --global dotnet-ef
           echo "$HOME/.dotnet/tools" >> "$GITHUB_PATH"
 
-      - name: Restore backend dependencies
-        working-directory: ERP_backend
-        run: dotnet restore ERP-Inventory-Management-System.sln
-
-      - name: Build backend (with analyzers)
-        working-directory: ERP_backend
-        run: dotnet build ERP-Inventory-Management-System.sln --configuration Release --no-restore /p:AnalysisMode=AllEnabledByDefault /p:TreatWarningsAsErrors=true
+      - name: Download API build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: erpapi-build
+          path: ERP_backend/ErpApi/bin/Release/net9.0
 
       - name: Apply EF Core migrations
         working-directory: ERP_backend
-        run: dotnet ef database update --project ErpApi/ErpApi.csproj --startup-project ErpApi/ErpApi.csproj
+        run: dotnet ef database update --project ErpApi/ErpApi.csproj --startup-project ErpApi/ErpApi.csproj --no-build
 
       - name: Start API
-        working-directory: ERP_backend
+        working-directory: ERP_backend/ErpApi/bin/Release/net9.0
         env:
           DB_CONNECTION_STRING: Host=localhost;Port=5432;Database=erp_ci;Username=erp_ci;Password=secret;Ssl Mode=Disable
         run: |
-          dotnet run --project ErpApi/ErpApi.csproj --configuration Release --no-launch-profile --urls http://0.0.0.0:5050 &
-          echo $! > api.pid
+          dotnet ErpApi.dll --urls http://0.0.0.0:5050 &
+          echo $! > "$RUNNER_TEMP/api.pid"
           for attempt in {1..30}; do
             if curl -fsS http://127.0.0.1:5050/health > /dev/null 2>&1; then
               exit 0
@@ -209,8 +213,8 @@ jobs:
       - name: Stop API
         if: always()
         run: |
-          if [ -f api.pid ]; then
-            kill $(cat api.pid) || true
+          if [ -f "$RUNNER_TEMP/api.pid" ]; then
+            kill $(cat "$RUNNER_TEMP/api.pid") || true
           fi
 
       - name: Upload Newman report
