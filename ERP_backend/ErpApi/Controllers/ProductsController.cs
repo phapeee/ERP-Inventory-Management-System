@@ -1,4 +1,5 @@
 using System;
+using System.ComponentModel.DataAnnotations;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.AspNetCore.Http;
@@ -6,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using ErpApi.Data.Generated;
 using ErpApi.Data.Generated.Entities;
+using System.Text.Json.Serialization;
 
 namespace ErpApi.Controllers
 {
@@ -79,5 +81,13 @@ namespace ErpApi.Controllers
     public record ProductDto(int Id, string Name, decimal Price);
 
     [SuppressMessage("Design", "CA1515:Consider marking type as internal", Justification = "Used by model binding for incoming requests.")]
-    public record ProductRequest(string Name, decimal Price);
+    public record ProductRequest
+    {
+        [Required]
+        public string Name { get; init; } = string.Empty;
+
+        [Required]
+        [JsonRequired]
+        public decimal Price { get; init; }
+    }
 }
