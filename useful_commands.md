@@ -50,12 +50,8 @@ docker run -d --name sonarqube   -p 9000:9000   -e SONAR_ES_BOOTSTRAP_CHECKS_DIS
 
 # .NET
 dotnet sonarscanner begin /k:"ERP-IMS" /d:sonar.host.url="http://localhost:9000" /d:sonar.token=$SONARQUBE_CS_API_KEY
-
 dotnet build
-
-dotnet \
-  sonarscanner end \
-  /d:sonar.token=$SONARQUBE_CS_API_KEY
+dotnet sonarscanner end /d:sonar.token=$SONARQUBE_CS_API_KEY
 
 # JS/TS
 sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=$SONARQUBE_TSJS_API_KEY -Dsonar.projectKey=ERP-IMS
