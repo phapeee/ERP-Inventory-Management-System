@@ -1,6 +1,7 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.EntityFrameworkCore.Design;
 using Microsoft.EntityFrameworkCore.Migrations.Design;
+using Microsoft.EntityFrameworkCore.Scaffolding;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace ErpApi.Design;
@@ -11,5 +12,6 @@ public sealed class ErpDesignTimeServices : IDesignTimeServices
     public void ConfigureDesignTimeServices(IServiceCollection serviceCollection)
     {
         serviceCollection.AddSingleton<IMigrationsCodeGenerator, SuppressingCSharpMigrationsGenerator>();
+        serviceCollection.AddSingleton<IModelCodeGenerator, PostProcessingCSharpModelGenerator>();
     }
 }

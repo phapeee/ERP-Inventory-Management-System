@@ -1,4 +1,4 @@
-using ErpApi.Data;
+using ErpApi.Data.Generated;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;

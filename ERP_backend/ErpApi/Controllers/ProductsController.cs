@@ -4,7 +4,8 @@ using System.Linq;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using ErpApi.Data;
+using ErpApi.Data.Generated;
+using ErpApi.Data.Generated.Entities;
 
 namespace ErpApi.Controllers
 {
