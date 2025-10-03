@@ -56,7 +56,7 @@ namespace ErpApi.Controllers
             entity.Name = input.Name;
             entity.Price = input.Price;
             await _db.SaveChangesAsync();
-            return NoContent();
+            return Ok();
         }
 
         // DELETE /api/products/1

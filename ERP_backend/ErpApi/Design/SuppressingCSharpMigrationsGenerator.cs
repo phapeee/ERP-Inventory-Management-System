@@ -53,15 +53,15 @@ internal sealed class SuppressingCSharpMigrationsGenerator(
 
     private static string AddClassDecorations(string code, string migrationName)
     {
-        var classHeader = $"public partial class {migrationName} : Migration";
+        var classHeader = $"    public partial class {migrationName} : Migration";
         if (!code.Contains(classHeader, StringComparison.Ordinal))
         {
             return code;
         }
 
         var decoratedHeader =
-            "[SuppressMessage(\"Performance\", \"CA1812:Avoid uninstantiated internal classes\", Justification = \"Instantiated by EF Core via reflection.\")]" + Environment.NewLine +
-            "[SuppressMessage(\"Design\", \"CA1515:Consider marking type as internal\", Justification = \"EF Core requires migrations to remain public.\")]" + Environment.NewLine +
+            "    [SuppressMessage(\"Performance\", \"CA1812:Avoid uninstantiated internal classes\", Justification = \"Instantiated by EF Core via reflection.\")]" + Environment.NewLine +
+            "    [SuppressMessage(\"Design\", \"CA1515:Consider marking type as internal\", Justification = \"EF Core requires migrations to remain public.\")]" + Environment.NewLine +
             classHeader.Replace("public partial", "public sealed partial", StringComparison.Ordinal);
 
         return code.Replace(classHeader, decoratedHeader, StringComparison.Ordinal);
@@ -69,19 +69,20 @@ internal sealed class SuppressingCSharpMigrationsGenerator(
 
     private static string AddArgumentNullGuard(string code, string methodName)
     {
-        var signature = $"protected override void {methodName}(MigrationBuilder migrationBuilder)";
-        var header = signature + Environment.NewLine + "    {";
+        var signature = $"        protected override void {methodName}(MigrationBuilder migrationBuilder)";
+        var header = signature + Environment.NewLine + "        {";
         if (!code.Contains(header, StringComparison.Ordinal))
         {
             return code;
         }
 
-        var guardLine = "        ArgumentNullException.ThrowIfNull(migrationBuilder);";
-        if (code.Contains(header + Environment.NewLine + guardLine, StringComparison.Ordinal))
+        const string guardLine = "            ArgumentNullException.ThrowIfNull(migrationBuilder);";
+        if (code.Contains(header + Environment.NewLine + guardLine + Environment.NewLine, StringComparison.Ordinal))
         {
             return code;
         }
 
         return code.Replace(header, header + Environment.NewLine + guardLine + Environment.NewLine, StringComparison.Ordinal);
     }
+
 }
