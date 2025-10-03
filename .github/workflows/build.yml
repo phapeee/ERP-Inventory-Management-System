@@ -9,6 +9,8 @@ jobs:
   build:
     name: Build and analyze
     runs-on: windows-latest
+    env:
+      SONAR_HOST_URL: https://heaven-extend-illustrations-reproduction.trycloudflare.com
 
     steps:
       - uses: actions/checkout@v4
@@ -41,6 +43,6 @@ jobs:
       - name: Build and analyze
         shell: powershell
         run: |
-          .\.sonar\scanner\dotnet-sonarscanner begin /k:"ERP-IMS" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="${{ secrets.SONAR_HOST_URL }}"
+          .\.sonar\scanner\dotnet-sonarscanner begin /k:"ERP-IMS" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="${{ env.SONAR_HOST_URL }}"
           dotnet build
           .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
