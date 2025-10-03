@@ -158,6 +158,8 @@ vite.config.ts.timestamp-*
 [Ll]ogs/
 [Ll]ogfile*
 [Ll]ogging/
+!ERP_backend/ErpApi/Logging/
+!ERP_backend/ErpApi/Logging/*.cs
 [Ll]aunchProfiles/
 [Tt]est[Rr]esults/
 **/TestResults/
