@@ -36,6 +36,13 @@ internal static class EnvironmentVariableLoader
                 continue;
             }
 
+            // Prefer externally provided values (e.g., CI environment variables).
+            var existingValue = Environment.GetEnvironmentVariable(key);
+            if (!string.IsNullOrWhiteSpace(existingValue))
+            {
+                continue;
+            }
+
             var value = trimmed[(separatorIndex + 1)..].Trim();
             if (value.Length >= 2 && value.StartsWith('"') && value.EndsWith('"'))
             {
