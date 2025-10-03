@@ -64,7 +64,7 @@ jobs:
         run: dotnet restore
 
       - name: Apply EF Core migrations
-        run: dotnet ef database update --project ErpApi/ErpApi.csproj --startup-project ErpApi/ErpApi.csproj
+        run: dotnet ef database update --project ERP_backend/ErpApi/ErpApi.csproj --startup-project ERP_backend/ErpApi/ErpApi.csproj
 
       - name: Build (with analyzers)
         run: dotnet build ERP-Inventory-Management-System.sln --configuration Release --no-restore /p:AnalysisMode=AllEnabledByDefault /p:TreatWarningsAsErrors=true
