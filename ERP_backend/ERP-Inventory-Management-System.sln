@@ -3,11 +3,11 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ERP_ASP_dotnet", "ERP_ASP_dotnet", "{B86731CC-04FD-AB44-7EBB-A3A43FB75253}"
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "ERP_backend", "ERP_backend", "{B86731CC-04FD-AB44-7EBB-A3A43FB75253}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP_backend", "ERP_ASP_dotnet\ERP_backend.csproj", "{4AED81E8-452A-4A91-A203-EE96FCD42142}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP_backend", "ErpApi\ErpApi.csproj", "{4AED81E8-452A-4A91-A203-EE96FCD42142}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ERP_xUnit_dotnet", "ERP_xUnit_dotnet\ERP_xUnit_dotnet.csproj", "{C56742B5-EC8D-43BA-B21E-8EC1362AA5D3}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ErpXunit", "ErpXunit\ErpXunit.csproj", "{C56742B5-EC8D-43BA-B21E-8EC1362AA5D3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -1,9 +1,10 @@
-using ERP_backend.Data;
+using ErpApi.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 using Npgsql;
 using Scalar.AspNetCore;
+using System.Data.Common;
 
 LoadDotEnv();
 
@@ -45,34 +46,39 @@ app.UseHttpsRedirection();
 app.MapGet("/health", () => Results.Ok("ok"));
 
 app.MapControllers();
-app.Run();
+await app.RunAsync();
 
 static async Task EnsureDatabaseConnectionAsync(WebApplication app, string connectionString)
 {
     await using var scope = app.Services.CreateAsyncScope();
     var dbContext = scope.ServiceProvider.GetRequiredService<AppDb>();
     var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
+    const string ConnectionFailureMessage = "Unable to connect to the database using the configured connection string.";
 
-    logger.LogInformation("Attempting database connection using {ConnectionInfo}",
-        GetSafeConnectionInfo(connectionString));
+    ConnectionLogging.AttemptingDatabaseConnection(logger, GetSafeConnectionInfo(connectionString));
+
+    bool canConnect;
 
     try
     {
-        if (!await dbContext.Database.CanConnectAsync())
-        {
-            const string message = "Unable to connect to the database using the configured connection string.";
-            logger.LogCritical(message);
-            throw new InvalidOperationException(message);
-        }
-
-        logger.LogInformation("Database connection verified successfully.");
+        canConnect = await dbContext.Database.CanConnectAsync();
     }
-    catch (Exception ex)
+    catch (DbException ex)
     {
-        const string message = "Unable to connect to the database using the configured connection string.";
-        logger.LogCritical(ex, message);
-        throw new InvalidOperationException(message, ex);
+        throw CreateDatabaseConnectionException(logger, ConnectionFailureMessage, ex);
     }
+    catch (InvalidOperationException ex)
+    {
+        throw CreateDatabaseConnectionException(logger, ConnectionFailureMessage, ex);
+    }
+
+    if (!canConnect)
+    {
+        ConnectionLogging.DatabaseConnectionVerificationFailed(logger);
+        throw new InvalidOperationException(ConnectionFailureMessage);
+    }
+
+    ConnectionLogging.DatabaseConnectionVerified(logger);
 
     static string GetSafeConnectionInfo(string connectionString)
     {
@@ -81,10 +87,16 @@ static async Task EnsureDatabaseConnectionAsync(WebApplication app, string conne
             var builder = new NpgsqlConnectionStringBuilder(connectionString);
             return $"Host={builder.Host};Port={builder.Port};Database={builder.Database};Username={builder.Username}";
         }
-        catch
+        catch (Exception ex) when (ex is ArgumentException or FormatException or InvalidOperationException)
         {
             return "[unparsable connection string]";
         }
+    }
+
+    static InvalidOperationException CreateDatabaseConnectionException(ILogger logger, string message, Exception ex)
+    {
+        ConnectionLogging.DatabaseConnectionException(logger, ex);
+        return new InvalidOperationException(message, ex);
     }
 }
 
@@ -100,12 +112,12 @@ static void LoadDotEnv()
     {
         var trimmed = line.Trim();
 
-        if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith("#", StringComparison.Ordinal))
+        if (string.IsNullOrEmpty(trimmed) || trimmed.StartsWith('#'))
         {
             continue;
         }
 
-        var separatorIndex = trimmed.IndexOf('=');
+        var separatorIndex = trimmed.IndexOf('=', StringComparison.Ordinal);
         if (separatorIndex <= 0)
         {
             continue;
@@ -125,4 +137,19 @@ static void LoadDotEnv()
 
         Environment.SetEnvironmentVariable(key, value);
     }
+}
+
+internal static partial class ConnectionLogging
+{
+    [LoggerMessage(EventId = 1, Level = LogLevel.Information, Message = "Attempting database connection using {ConnectionInfo}")]
+    public static partial void AttemptingDatabaseConnection(ILogger logger, string connectionInfo);
+
+    [LoggerMessage(EventId = 2, Level = LogLevel.Critical, Message = "Unable to connect to the database using the configured connection string.")]
+    public static partial void DatabaseConnectionVerificationFailed(ILogger logger);
+
+    [LoggerMessage(EventId = 3, Level = LogLevel.Information, Message = "Database connection verified successfully.")]
+    public static partial void DatabaseConnectionVerified(ILogger logger);
+
+    [LoggerMessage(EventId = 4, Level = LogLevel.Critical, Message = "Unable to connect to the database using the configured connection string.")]
+    public static partial void DatabaseConnectionException(ILogger logger, Exception exception);
 }
