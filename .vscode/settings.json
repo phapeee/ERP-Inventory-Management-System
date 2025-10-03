@@ -3,6 +3,6 @@
   "dotnet.server.useOmnisharp": true,
   "sonarlint.connectedMode.project": {
     "connectionId": "http-localhost-9000",
-    "projectKey": "ERP-IMS"
+    "projectKey": "ERP-IMS-Frontend"
   }
 }

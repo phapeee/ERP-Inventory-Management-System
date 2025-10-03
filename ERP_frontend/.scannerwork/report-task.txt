@@ -1,6 +1,0 @@
-projectKey=ERP-IMS
-serverUrl=http://localhost:9000
-serverVersion=25.9.0.112764
-dashboardUrl=http://localhost:9000/dashboard?id=ERP-IMS
-ceTaskId=dd118b44-53e4-4a6f-a95c-0ae973155a34
-ceTaskUrl=http://localhost:9000/api/ce/task?id=dd118b44-53e4-4a6f-a95c-0ae973155a34

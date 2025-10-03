@@ -1,5 +1,0 @@
-﻿/home/ubuntu/ERP-Inventory-Management-System/ERP_backend/ErpXunit/UnitTest1.cs
-/home/ubuntu/.nuget/packages/xunit.v3.core/3.1.0/_content/DefaultRunnerReporters.cs
-/home/ubuntu/ERP-Inventory-Management-System/ERP_backend/ErpXunit/xunit.runner.json
-/home/ubuntu/.nuget/packages/xunit.runner.visualstudio/3.1.5/build/net8.0/xunit.abstractions.dll
-/home/ubuntu/.nuget/packages/xunit.runner.visualstudio/3.1.5/build/net8.0/xunit.runner.visualstudio.testadapter.dll

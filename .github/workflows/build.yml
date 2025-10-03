@@ -6,11 +6,12 @@ on:
       - main
 
 jobs:
-  build:
-    name: Build and analyze
+  backend-build:
+    name: Build and Analyze .NET with SonarQube
     runs-on: windows-latest
     env:
-      SONAR_HOST_URL: https://heaven-extend-illustrations-reproduction.trycloudflare.com
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONARQUBE_CS_API_KEY: ${{ secrets.SONARQUBE_CS_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
@@ -43,6 +44,38 @@ jobs:
       - name: Build and analyze
         shell: powershell
         run: |
-          .\.sonar\scanner\dotnet-sonarscanner begin /k:"ERP-IMS" /d:sonar.token="${{ secrets.SONAR_TOKEN }}" /d:sonar.host.url="${{ env.SONAR_HOST_URL }}"
+          .\.sonar\scanner\dotnet-sonarscanner begin /k:"ERP-IMS" /d:sonar.token="${SONARQUBE_CS_API_KEY}" /d:sonar.host.url="${SONAR_HOST_URL}"
           dotnet build
-          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${{ secrets.SONAR_TOKEN }}"
+          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${SONARQUBE_CS_API_KEY}"
+
+  frontend-analysis:
+    name: Analyze Frontend with SonarQube
+    runs-on: ubuntu-latest
+    env:
+      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+      SONAR_TOKEN: ${{ secrets.SONARQUBE_TSJS_API_KEY }}
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install sonar CLI
+        run: npm install -g @sonarsource/sonarqube-scan
+
+      - name: Install dependencies
+        working-directory: ERP_frontend
+        run: npm ci
+
+      - name: Run SonarQube scan (frontend)
+        working-directory: ERP_frontend
+        run: |
+          sonar \
+            -Dsonar.host.url=${SONAR_HOST_URL} \
+            -Dsonar.token=${SONAR_TOKEN} \
+            -Dsonar.projectKey=ERP-IMS-Frontend

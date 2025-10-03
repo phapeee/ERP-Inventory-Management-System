@@ -54,7 +54,7 @@ dotnet build
 dotnet sonarscanner end /d:sonar.token=$SONARQUBE_CS_API_KEY
 
 # JS/TS
-sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=$SONARQUBE_TSJS_API_KEY -Dsonar.projectKey=ERP-IMS
+sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=$SONARQUBE_TSJS_API_KEY -Dsonar.projectKey=ERP-IMS-Frontend
 ```
 
 ## Start SonarQube with CloudFlare tunnel
