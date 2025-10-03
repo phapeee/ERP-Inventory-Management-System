@@ -76,7 +76,9 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: erpapi-build
-          path: ERP_backend/ErpApi/bin/Release/net9.0
+          path: |
+            ERP_backend/ErpApi/bin/Release/net9.0
+            ERP_backend/ErpApi/obj
 
   frontend:
     name: Frontend (Angular)
@@ -145,7 +147,7 @@ jobs:
         uses: actions/download-artifact@v4
         with:
           name: erpapi-build
-          path: ERP_backend/ErpApi/bin/Release/net9.0
+          path: ERP_backend/ErpApi
 
       - name: Apply EF Core migrations
         working-directory: ERP_backend
