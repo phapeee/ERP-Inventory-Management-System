@@ -1,0 +1,7 @@
+{
+  "RoslynExtensionsOptions": {
+    "EnableRoslynAnalyzers": true,
+    "EnableAnalyzersSupport": true,
+    "LocationPaths": []
+  }
+}

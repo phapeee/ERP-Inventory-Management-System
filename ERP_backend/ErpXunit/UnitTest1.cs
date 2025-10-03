@@ -1,4 +1,4 @@
-namespace ERP_xUnit_dotnet;
+namespace ErpXunit;
 
 public class UnitTest1
 {

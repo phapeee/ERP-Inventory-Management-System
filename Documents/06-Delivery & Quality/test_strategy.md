@@ -154,6 +154,22 @@ Security tests should be integrated into the CI/CD pipeline. Automated
 scans run on each commit, while periodic penetration tests and audits
 occur before major releases.
 
+### CI/CD Security Integration Patterns
+
+- **Shift-left gates:** Run SAST and SCA (e.g. SonarQube/Checkmarx + Snyk Open Source)
+  on every pull request, fail the build on high-severity findings, and surface
+  remediation advice directly in IDE plug-ins and PR comments.
+- **Scheduled dynamic coverage:** Execute DAST/IAST suites (Invicti, Burp Suite
+  Enterprise, Contrast Assess) nightly or ahead of release branches, chaining
+  them after API smoke tests so instrumentation exercises critical workflows.
+- **Unified remediation workflow:** Push all security findings into the shared
+  tracker (Azure DevOps Boards, Jira, ServiceNow) with severity SLAs so owners
+  can triage alongside functional defects.
+- **Defense-in-depth automation:** Layer secrets detection (GitGuardian) and
+  IaC/container scans (Snyk IaC, Trivy) into the GitHub Actions workflow next
+  to the Roslyn analyzer build to ensure infrastructure and configuration issues
+  block merges alongside code defects.
+
 ### Accessibility Testing
 
 Accessibility testing ensures that the web application is usable by
@@ -185,6 +201,18 @@ until resolved.
 ### Spell Checking
 
 Spell checking is an important part of maintaining the quality of the codebase and documentation. It helps to catch typos and spelling errors in code comments, documentation, and user-facing strings. Automated spell checking can be integrated into the CI/CD pipeline to ensure that all committed code is free of spelling errors. Tools like `cspell` can be used to perform automated spell checking.
+
+### Static Code Analysis
+
+Static analyzers provide fast feedback on code quality issues before runtime. The .NET solution enables the built-in Roslyn analyzers by setting `<EnableNETAnalyzers>true</EnableNETAnalyzers>` and `<AnalysisLevel>latest</AnalysisLevel>` in `ERP_backend/ErpApi/ERP_backend.csproj`. To interact with the analyzers locally:
+
+- run `dotnet clean` to clean build;
+- run `dotnet build ERP_backend/ERP-Inventory-Management-System.sln --configuration Debug /p:AnalysisMode=AllEnabledByDefault -warnaserror` to surface the default rule set; add `/warnaserror` when you want diagnostics to fail the build;
+- run `dotnet format analyzers --severity warn` from `ERP_backend` to list and optionally fix analyzer violations across the solution;
+- create or update a repo-root `.editorconfig` to promote or demote specific rules, e.g. `dotnet_diagnostic.CA2007.severity = warning` to enforce `ConfigureAwait` usage in async methods;
+- try `dotnet watch build /p:AnalysisMode=AllEnabledByDefault` for continuous feedback during development.
+
+Analyzer findings should be triaged like any other defect: fix immediately when practical, document approved suppressions with justification, and add regression tests when a bug is prevented by the analyzer.
 
 ### Reliability and Resilience Testing
 
@@ -231,26 +259,30 @@ Test Automation Framework
 Automation is vital for fast feedback and reliability. Each test layer
 uses appropriate tools:
 
-| Stack                | Scope / Test Type               | Example Tools                                                                 | Notes                                                                                                       |
-| -------------------- | ------------------------------- | ----------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| ASP.NET (C#)         | Unit Testing                    | xUnit.net, NUnit                                                              | Execute on each commit; leverage `.NET` test runners and `WebApplicationFactory` for isolated server tests. |
-| ASP.NET (C#)         | Integration & API Testing       | Postman/Newman, Selenium (server-side smoke)                                  | Postman/Newman exercise REST APIs; Selenium supports smoke tests for server-rendered flows.                 |
-| ASP.NET (C#)         | Performance & Load              | JMeter, k6, Locust, Azure Load Testing, Visual Studio Performance Diagnostics | Drive API load, measure latency/throughput, capture server resource metrics.                                |
-| ASP.NET (C#)         | Code Styling & Linting          | .NET Analyzers, StyleCop, ReSharper                                           | Enforce language conventions and highlight refactoring opportunities in CI and IDE.                         |
-| ASP.NET (C#)         | Security & Dependency Scans     | SonarQube, OWASP ZAP, Snyk                                                    | SonarQube covers SAST; ZAP performs DAST against deployed APIs; Snyk audits NuGet dependencies.             |
-| ASP.NET (C#)         | Spell Checking & Docs           | LanguageTool, Code Spell Checker (VS Code)                                    | Guard against typos in C# code comments and documentation.                                                  |
-| Angular (TypeScript) | Unit Testing                    | Jest, Mocha                                                                   | Run via `ng test`; provide fast feedback on components/services.                                            |
-| Angular (TypeScript) | Component / Integration Testing | Cypress Component Testing, Playwright Test                                    | Validate component logic with DOM rendering and network mocks.                                              |
-| Angular (TypeScript) | System Journeys (E2E)           | Cypress E2E, Selenium + Cucumber                                              | Cover checkout, returns and admin flows end-to-end across browsers.                                         |
-| Angular (TypeScript) | Accessibility & Cross-browser   | aXe, Lighthouse, WAVE, Pa11y, Accessibility Insights for Web, BrowserStack    | Automate WCAG audits; verify assistive tech and browser/device coverage.                                    |
-| Angular (TypeScript) | Performance & Bundle Analysis   | Lighthouse Performance, Webpack Bundle Analyzer                               | Track Core Web Vitals and detect bundle regressions.                                                        |
-| Angular (TypeScript) | Code Styling & Linting          | ESLint, Prettier                                                              | Enforce lint rules and consistent formatting via CI hooks.                                                  |
-| Angular (TypeScript) | Security & Dependency Scans     | Snyk, OWASP ZAP, Trivy                                                        | Scan npm dependencies, run DAST against SPA endpoints, scan container images.                               |
-| Angular (TypeScript) | Spell Checking & Content QA     | cspell, Code Spell Checker (VS Code)                                          | Catch spelling issues in templates, copy and documentation.                                                 |
+| Stack                | Scope / Test Type               | Example Tools                                                                     | Notes                                                                                                       |
+| -------------------- | ------------------------------- | --------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| ASP.NET (C#)         | Unit Testing                    | xUnit.net, NUnit                                                                  | Execute on each commit; leverage `.NET` test runners and `WebApplicationFactory` for isolated server tests. |
+| ASP.NET (C#)         | Integration & API Testing       | Postman/Newman, Selenium (server-side smoke)                                      | Postman/Newman exercise REST APIs; Selenium supports smoke tests for server-rendered flows.                 |
+| ASP.NET (C#)         | Performance & Load              | JMeter, k6, Locust, Azure Load Testing, Visual Studio Performance Diagnostics     | Drive API load, measure latency/throughput, capture server resource metrics.                                |
+| ASP.NET (C#)         | Code Styling & Linting          | .NET Analyzers, StyleCop, ReSharper                                               | Enforce language conventions and highlight refactoring opportunities in CI and IDE.                         |
+| ASP.NET (C#)         | Security & Dependency Scans     | SonarQube or Checkmarx (SAST), Snyk Open Source (SCA), Invicti Enterprise (DAST)  | Gate PRs with SAST/SCA checks; schedule Invicti scans after smoke tests for exploitable coverage.           |
+| ASP.NET (C#)         | Spell Checking & Docs           | LanguageTool, Code Spell Checker (VS Code)                                        | Guard against typos in C# code comments and documentation.                                                  |
+| Angular (TypeScript) | Unit Testing                    | Jest, Mocha                                                                       | Run via `ng test`; provide fast feedback on components/services.                                            |
+| Angular (TypeScript) | Component / Integration Testing | Cypress Component Testing, Playwright Test                                        | Validate component logic with DOM rendering and network mocks.                                              |
+| Angular (TypeScript) | System Journeys (E2E)           | Cypress E2E, Selenium + Cucumber                                                  | Cover checkout, returns and admin flows end-to-end across browsers.                                         |
+| Angular (TypeScript) | Accessibility & Cross-browser   | aXe, Lighthouse, WAVE, Pa11y, Accessibility Insights for Web, BrowserStack        | Automate WCAG audits; verify assistive tech and browser/device coverage.                                    |
+| Angular (TypeScript) | Performance & Bundle Analysis   | Lighthouse Performance, Webpack Bundle Analyzer                                   | Track Core Web Vitals and detect bundle regressions.                                                        |
+| Angular (TypeScript) | Code Styling & Linting          | ESLint, Prettier                                                                  | Enforce lint rules and consistent formatting via CI hooks.                                                  |
+| Angular (TypeScript) | Security & Dependency Scans     | SonarQube (TS rules) or Snyk Code (SAST), Snyk Open Source, Burp Suite Enterprise | Fail PRs on frontend vulnerabilities; pair Burp scans with nightly journeys to catch SPA regressions.       |
+| Cross Stack          | Secrets & IaC / Container Scans | GitGuardian, Snyk IaC, Trivy                                                      | Enforce secret/IaC policies in GitHub Actions alongside Roslyn analyzers and Docker image builds.           |
+| Angular (TypeScript) | Spell Checking & Content QA     | cspell, Code Spell Checker (VS Code)                                              | Catch spelling issues in templates, copy and documentation.                                                 |
 
 CI pipelines must run unit and integration tests on each pull request;
 functional, E2E and non‑functional tests run nightly or before major
-releases. Failing tests break the pipeline and prevent promotion.
+releases. Security automation from the table (SAST/SCA, secrets, IaC)
+executes alongside builds on every PR, while DAST/IAST suites run on
+nightly environments prior to release. Failing checks break the pipeline
+and prevent promotion.
 
 Metrics and Reporting
 ---------------------
@@ -318,15 +350,18 @@ meets customer expectations and regulatory obligations.
 
 ## Final Tooling Decision
 
-| Category | Chosen Tool | Rationale |
-|---|---|---|
-| **ASP.NET (C#) Unit Testing** | xUnit.net | A modern, popular, and community-driven unit testing framework for .NET. It's highly extensible and integrates seamlessly with the .NET CLI and GitHub Actions. |
-| **ASP.NET (C#) API Testing** | Postman/Newman | The industry standard for API development and testing. Newman allows running Postman collections from the command line, making it ideal for automated API testing in CI/CD. |
-| **ASP.NET (C#) Performance & Load** | k6 | A modern, developer-centric load testing tool with tests written in JavaScript. It's easy to integrate into CI/CD pipelines and provides excellent performance. |
-| **ASP.NET (C#) Code Styling** | .NET Analyzers | Built into the .NET SDK, they provide the official and most integrated way to enforce code style and quality rules during development and in the CI pipeline. |
-| **Angular (TypeScript) Unit Testing** | Vitest | A blazing fast unit test framework with a Jest-compatible API. Its speed and integration with modern JS tooling provide a great developer experience. |
-| **Angular (TypeScript) E2E, Component & Accessibility Testing** | Playwright | A modern and powerful framework from Microsoft for reliable end-to-end, component, and accessibility testing (with `axe-core`) across all modern browsers. Its unified API simplifies the testing stack. |
-| **Angular (TypeScript) Performance** | Lighthouse | The industry standard for auditing web page quality and performance. It provides actionable insights into Core Web Vitals and can be easily run in CI. |
-| **Angular (TypeScript) Code Styling** | ESLint & Prettier | The de-facto standard for linting and code formatting in the TypeScript ecosystem. They work together to enforce consistent code style and catch potential errors early. |
-| **Cross-Stack Security** | Snyk | Using a single, popular, developer-first security platform for both the frontend and backend simplifies security management, provides a unified view of vulnerabilities, and streamlines fixing them. |
-| **Cross-Stack Spell Checking** | cspell | A command-line tool that can be used to spell check code and documentation across the entire project, ensuring consistency and professionalism in CI pipelines.|
+| Category                                                        | Chosen Tool                          | Rationale                                                                                                                                                                                                |
+| --------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **ASP.NET (C#) Unit Testing**                                   | xUnit.net                            | A modern, popular, and community-driven unit testing framework for .NET. It's highly extensible and integrates seamlessly with the .NET CLI and GitHub Actions.                                          |
+| **ASP.NET (C#) API Testing**                                    | Postman/Newman                       | The industry standard for API development and testing. Newman allows running Postman collections from the command line, making it ideal for automated API testing in CI/CD.                              |
+| **ASP.NET (C#) Performance & Load**                             | k6                                   | A modern, developer-centric load testing tool with tests written in JavaScript. It's easy to integrate into CI/CD pipelines and provides excellent performance.                                          |
+| **ASP.NET (C#) Code Styling**                                   | .NET Analyzers                       | Built into the .NET SDK, they provide the official and most integrated way to enforce code style and quality rules during development and in the CI pipeline.                                            |
+| **Angular (TypeScript) Unit Testing**                           | Vitest                               | A blazing fast unit test framework with a Jest-compatible API. Its speed and integration with modern JS tooling provide a great developer experience.                                                    |
+| **Angular (TypeScript) E2E, Component & Accessibility Testing** | Playwright                           | A modern and powerful framework from Microsoft for reliable end-to-end, component, and accessibility testing (with `axe-core`) across all modern browsers. Its unified API simplifies the testing stack. |
+| **Angular (TypeScript) Performance**                            | Lighthouse                           | The industry standard for auditing web page quality and performance. It provides actionable insights into Core Web Vitals and can be easily run in CI.                                                   |
+| **Angular (TypeScript) Code Styling**                           | ESLint & Prettier                    | The de-facto standard for linting and code formatting in the TypeScript ecosystem. They work together to enforce consistent code style and catch potential errors early.                                 |
+| **Cross-Stack SAST & Quality Gates**                            | SonarQube + Roslyn analyzers         | Centralized dashboards and PR annotations enforce policy-as-code; Roslyn analyzers keep fast, compiler-integrated feedback for .NET contributors.                                                        |
+| **Cross-Stack Dependency & Container Scanning**                 | Snyk Open Source + Trivy             | Snyk blocks vulnerable NuGet/npm packages at PR time, while Trivy extends coverage to container layers baked during CI.                                                                                  |
+| **Cross-Stack Dynamic & Interactive Security**                  | Invicti Enterprise + Contrast Assess | Invicti runs scheduled proof-based DAST against nightly deployments; Contrast instrumentation surfaces exploitable issues during functional smoke tests.                                                 |
+| **Secrets & IaC Governance**                                    | GitGuardian + Snyk IaC               | GitGuardian prevents secret leaks in source and history; Snyk IaC enforces infrastructure guardrails before deployments.                                                                                 |
+| **Cross-Stack Spell Checking**                                  | cspell                               | A command-line tool that can be used to spell check code and documentation across the entire project, ensuring consistency and professionalism in CI pipelines.                                          |

@@ -45,7 +45,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: "9.0.x"
 
       - name: Install dotnet-ef tool
         run: |
@@ -61,13 +61,13 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore dependencies
-        run: dotnet restore ERP-Inventory-Management-System.sln
+        run: dotnet restore
 
       - name: Apply EF Core migrations
-        run: dotnet ef database update --project ERP_ASP_dotnet/ERP_backend.csproj --startup-project ERP_ASP_dotnet/ERP_backend.csproj
+        run: dotnet ef database update --project ErpApi/ErpApi.csproj --startup-project ErpApi/ErpApi.csproj
 
-      - name: Build
-        run: dotnet build ERP-Inventory-Management-System.sln --configuration Release --no-restore
+      - name: Build (with analyzers)
+        run: dotnet build ERP-Inventory-Management-System.sln --configuration Release --no-restore /p:AnalysisMode=AllEnabledByDefault /p:TreatWarningsAsErrors=true
 
       - name: Test
         run: dotnet test ERP-Inventory-Management-System.sln --configuration Release --no-build --verbosity normal
@@ -85,7 +85,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
           cache: npm
           cache-dependency-path: ERP_frontend/package-lock.json
 
@@ -128,7 +128,7 @@ jobs:
       - name: Setup .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: '9.0.x'
+          dotnet-version: "9.0.x"
 
       - name: Install dotnet-ef tool
         run: |
@@ -139,20 +139,20 @@ jobs:
         working-directory: ERP_backend
         run: dotnet restore ERP-Inventory-Management-System.sln
 
-      - name: Build backend
+      - name: Build backend (with analyzers)
         working-directory: ERP_backend
-        run: dotnet build ERP-Inventory-Management-System.sln --configuration Release --no-restore
+        run: dotnet build ERP-Inventory-Management-System.sln --configuration Release --no-restore /p:AnalysisMode=AllEnabledByDefault /p:TreatWarningsAsErrors=true
 
       - name: Apply EF Core migrations
         working-directory: ERP_backend
-        run: dotnet ef database update --project ERP_ASP_dotnet/ERP_backend.csproj --startup-project ERP_ASP_dotnet/ERP_backend.csproj
+        run: dotnet ef database update --project ErpApi/ErpApi.csproj --startup-project ErpApi/ErpApi.csproj
 
       - name: Start API
         working-directory: ERP_backend
         env:
           DB_CONNECTION_STRING: Host=localhost;Port=5432;Database=erp_ci;Username=erp_ci;Password=secret;Ssl Mode=Disable
         run: |
-          dotnet run --project ERP_ASP_dotnet/ERP_backend.csproj --configuration Release --no-launch-profile --urls http://0.0.0.0:5050 &
+          dotnet run --project ErpApi/ErpApi.csproj --configuration Release --no-launch-profile --urls http://0.0.0.0:5050 &
           echo $! > api.pid
           for attempt in {1..30}; do
             if curl -fsS http://127.0.0.1:5050/health > /dev/null 2>&1; then
@@ -168,7 +168,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
+          node-version: "20"
 
       - name: Install Newman
         run: npm install --global newman
