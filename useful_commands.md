@@ -62,3 +62,9 @@ sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=$SONARQUBE_TSJS_API_K
 ```bash
 docker compose -f "Docker Compose/sonarqube-cloudflared.compose.yaml" up -d
 ```
+
+## Start SonarQube with CloudFlare tunnel
+
+```bash
+docker compose -f "Docker Compose/sonarqube-cloudflared.compose.yaml" up -d
+```
