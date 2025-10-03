@@ -19,5 +19,4 @@ public partial class AppDb : DbContext
 
     internal virtual DbSet<Product> Products { get; set; } = null!;
 
-    partial void OnModelCreatingPartial(ModelBuilder modelBuilder);
 }

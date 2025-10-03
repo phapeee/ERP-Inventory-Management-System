@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -11,12 +12,8 @@ namespace ErpApi.Design;
 
 #pragma warning disable EF1001
 [SuppressMessage("Performance", "CA1812:Avoid uninstantiated internal classes", Justification = "Instantiated by EF Core design-time services via reflection.")]
-internal sealed class PostProcessingCSharpModelGenerator : IModelCodeGenerator, ILanguageBasedService
+internal sealed partial class PostProcessingCSharpModelGenerator : IModelCodeGenerator
 {
-    private static readonly Regex DbSetPropertyRegex = new(
-        @"(?<property>\b(?:public|internal|protected|private)\s+(?:virtual\s+)?DbSet<[^>]+>\s+\w+\s*{\s*get;\s*set;\s*})",
-        RegexOptions.Compiled);
-
     private readonly IModelCodeGenerator _inner;
     private readonly ILanguageBasedService? _languageService;
 
@@ -44,31 +41,46 @@ internal sealed class PostProcessingCSharpModelGenerator : IModelCodeGenerator, 
     {
         var scaffoldedModel = _inner.GenerateModel(model, options);
 
-        if (scaffoldedModel.ContextFile?.Code is { Length: > 0 } contextCode)
-        {
-            contextCode = RemoveOnConfiguring(contextCode);
-            contextCode = EnsureDbSetInitialization(contextCode);
-            contextCode = ApplyContextSuppressions(contextCode);
-            contextCode = NormalizeWhitespace(contextCode);
-            scaffoldedModel.ContextFile.Code = contextCode;
-        }
-
-        if (scaffoldedModel.AdditionalFiles.Count > 0)
-        {
-            foreach (var additionalFile in scaffoldedModel.AdditionalFiles)
-            {
-                if (additionalFile.Code is { Length: > 0 } entityCode)
-                {
-                    entityCode = EnsureInternalEntityType(entityCode);
-                    entityCode = ApplyEntityAnnotations(entityCode);
-                    entityCode = NormalizeEntityProperties(entityCode);
-                    entityCode = NormalizeWhitespace(entityCode);
-                    additionalFile.Code = entityCode;
-                }
-            }
-        }
+        UpdateContextFile(scaffoldedModel.ContextFile);
+        UpdateEntityFiles(scaffoldedModel.AdditionalFiles);
 
         return scaffoldedModel;
+    }
+
+    private static void UpdateContextFile(ScaffoldedFile? contextFile)
+    {
+        if (contextFile?.Code is not { Length: > 0 } contextCode)
+        {
+            return;
+        }
+
+        contextCode = RemoveOnConfiguring(contextCode);
+        contextCode = EnsureDbSetInitialization(contextCode);
+        contextCode = ApplyContextSuppressions(contextCode);
+        contextCode = NormalizeWhitespace(contextCode);
+        contextFile.Code = contextCode;
+    }
+
+    private static void UpdateEntityFiles(IList<ScaffoldedFile> additionalFiles)
+    {
+        if (additionalFiles.Count == 0)
+        {
+            return;
+        }
+
+        foreach (var additionalFile in additionalFiles)
+        {
+            if (additionalFile.Code is not { Length: > 0 } entityCode)
+            {
+                continue;
+            }
+
+            entityCode = EnsureInternalEntityType(entityCode);
+            entityCode = ApplyEntityAnnotations(entityCode);
+            entityCode = NormalizeEntityProperties(entityCode);
+            entityCode = NormalizeWhitespace(entityCode);
+            additionalFile.Code = entityCode;
+        }
     }
 
     private static string ApplyContextSuppressions(string code)
@@ -96,25 +108,18 @@ internal sealed class PostProcessingCSharpModelGenerator : IModelCodeGenerator, 
         return code;
     }
 
-    private static readonly Regex TrailingWhitespaceRegex = new(@"[ \t]+(?=\r?\n)", RegexOptions.Compiled);
-    private static readonly Regex MultipleBlankLinesRegex = new(@"(\r?\n){3,}", RegexOptions.Compiled);
-
     private static string NormalizeWhitespace(string code)
     {
-        var withoutTrailing = TrailingWhitespaceRegex.Replace(code, string.Empty);
-        return MultipleBlankLinesRegex.Replace(withoutTrailing, "\n\n");
+        var withoutTrailing = TrailingWhitespaceRegex().Replace(code, string.Empty);
+        return MultipleBlankLinesRegex().Replace(withoutTrailing, "\n\n");
     }
-
-    private static readonly Regex DbSetAccessModifierRegex = new(@"\b(public|protected|private)\s+(?=(?:virtual\s+)?DbSet<)", RegexOptions.Compiled);
-    private static readonly Regex EntityTypeDeclarationRegex = new(@"\bpublic\s+(?<partial>partial\s+)?(?<kind>class|record)\s+", RegexOptions.Compiled);
-    private static readonly Regex EntityPropertyRegex = new(@"(?<indent>\s*)public\s+(?!virtual)(?!(?:partial\s+)?class\b|record\b)(?<rest>[^\n{]+\{[^\n]*get;[^\n]*\})", RegexOptions.Compiled);
 
     private static string EnsureDbSetInitialization(string code)
     {
-        return DbSetPropertyRegex.Replace(code, match =>
+        return DbSetPropertyRegex().Replace(code, match =>
         {
             var property = match.Groups["property"].Value;
-            property = DbSetAccessModifierRegex.Replace(property, "internal ");
+            property = DbSetAccessModifierRegex().Replace(property, "internal ");
             if (!property.Contains("= null!;", StringComparison.Ordinal))
             {
                 property += " = null!;";
@@ -131,7 +136,7 @@ internal sealed class PostProcessingCSharpModelGenerator : IModelCodeGenerator, 
             return code;
         }
 
-        return EntityTypeDeclarationRegex.Replace(code, match =>
+        return EntityTypeDeclarationRegex().Replace(code, match =>
         {
             var partial = match.Groups["partial"].Success ? "partial " : string.Empty;
             var kind = match.Groups["kind"].Value;
@@ -142,13 +147,20 @@ internal sealed class PostProcessingCSharpModelGenerator : IModelCodeGenerator, 
     private static string NormalizeEntityProperties(string code)
     {
         code = code.Replace("public virtual ", "public ", StringComparison.Ordinal);
-        return EntityPropertyRegex.Replace(code, match =>
+        return EntityPropertyRegex().Replace(code, match =>
         {
             var indent = match.Groups["indent"].Value;
             var rest = match.Groups["rest"].Value;
             return $"{indent}public {rest}";
         });
     }
+
+    private static Regex DbSetPropertyRegex() => DbSetPropertyRegexImpl();
+    private static Regex TrailingWhitespaceRegex() => TrailingWhitespaceRegexImpl();
+    private static Regex MultipleBlankLinesRegex() => MultipleBlankLinesRegexImpl();
+    private static Regex DbSetAccessModifierRegex() => DbSetAccessModifierRegexImpl();
+    private static Regex EntityTypeDeclarationRegex() => EntityTypeDeclarationRegexImpl();
+    private static Regex EntityPropertyRegex() => EntityPropertyRegexImpl();
 
     private static string RemoveOnConfiguring(string code)
     {
@@ -182,33 +194,59 @@ internal sealed class PostProcessingCSharpModelGenerator : IModelCodeGenerator, 
         var depth = 0;
         for (var i = start; i < text.Length; i++)
         {
-            var ch = text[i];
-            if (ch == '{')
+            switch (text[i])
             {
-                depth++;
-            }
-            else if (ch == '}')
-            {
-                depth--;
-                if (depth == 0)
-                {
-                    // consume trailing newline
-                    if (i + 1 < text.Length && text[i + 1] == '\r')
+                case '{':
+                    depth++;
+                    break;
+                case '}':
+                    depth--;
+                    if (depth == 0)
                     {
-                        i++;
-                    }
-                    if (i + 1 < text.Length && text[i + 1] == '\n')
-                    {
-                        i++;
+                        return ConsumeTrailingNewLine(text, i);
                     }
 
-                    return i;
-                }
+                    break;
             }
         }
 
         return -1;
     }
+
+    private static int ConsumeTrailingNewLine(string text, int index)
+    {
+        var next = index + 1;
+        if (next < text.Length && text[next] == '\r')
+        {
+            index = next;
+            next++;
+        }
+
+        if (next < text.Length && text[next] == '\n')
+        {
+            index = next;
+        }
+
+        return index;
+    }
+
+    [GeneratedRegex(@"(?<property>\b(?:public|internal|protected|private)\s+(?:virtual\s+)?DbSet<[^>]+>\s+\w+\s*{\s*get;\s*set;\s*})", RegexOptions.Compiled)]
+    private static partial Regex DbSetPropertyRegexImpl();
+
+    [GeneratedRegex(@"[ \t]+(?=\r?\n)", RegexOptions.Compiled)]
+    private static partial Regex TrailingWhitespaceRegexImpl();
+
+    [GeneratedRegex(@"(\r?\n){3,}", RegexOptions.Compiled)]
+    private static partial Regex MultipleBlankLinesRegexImpl();
+
+    [GeneratedRegex(@"\b(public|protected|private)\s+(?=(?:virtual\s+)?DbSet<)", RegexOptions.Compiled)]
+    private static partial Regex DbSetAccessModifierRegexImpl();
+
+    [GeneratedRegex(@"\bpublic\s+(?<partial>partial\s+)?(?<kind>class|record)\s+", RegexOptions.Compiled)]
+    private static partial Regex EntityTypeDeclarationRegexImpl();
+
+    [GeneratedRegex(@"(?<indent>\s*)public\s+(?!virtual)(?!(?:partial\s+)?class\b|record\b)(?<rest>[^\n{]+\{[^\n]*get;[^\n]*\})", RegexOptions.Compiled)]
+    private static partial Regex EntityPropertyRegexImpl();
 }
 
 #pragma warning restore EF1001

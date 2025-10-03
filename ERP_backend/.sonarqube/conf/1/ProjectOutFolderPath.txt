@@ -1,0 +1,1 @@
+/home/ubuntu/ERP-Inventory-Management-System/ERP_backend/.sonarqube/out/1
