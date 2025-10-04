@@ -8,7 +8,7 @@ on:
 jobs:
   backend-build:
     name: Build and Analyze .NET with SonarQube
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     env:
       SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
       SONARQUBE_CS_API_KEY: ${{ secrets.SONARQUBE_CS_API_KEY }}
@@ -25,28 +25,29 @@ jobs:
       - name: Cache SonarQube packages
         uses: actions/cache@v4
         with:
-          path: ~\.sonar\cache
+          path: ~/.sonar/cache
           key: ${{ runner.os }}-sonar
           restore-keys: ${{ runner.os }}-sonar
       - name: Cache SonarQube scanner
         id: cache-sonar-scanner
         uses: actions/cache@v4
         with:
-          path: .\.sonar\scanner
+          path: ./.sonar/scanner
           key: ${{ runner.os }}-sonar-scanner
           restore-keys: ${{ runner.os }}-sonar-scanner
       - name: Install SonarQube scanner
         if: steps.cache-sonar-scanner.outputs.cache-hit != 'true'
-        shell: powershell
         run: |
-          New-Item -Path .\.sonar\scanner -ItemType Directory
-          dotnet tool update dotnet-sonarscanner --tool-path .\.sonar\scanner
+          mkdir -p ./.sonar/scanner
+          dotnet tool update dotnet-sonarscanner --tool-path ./.sonar/scanner
       - name: Build and analyze
-        shell: powershell
+        env:
+          SONAR_HOST_URL: ${{ env.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ env.SONARQUBE_CS_API_KEY }}
         run: |
-          .\.sonar\scanner\dotnet-sonarscanner begin /k:"ERP-IMS" /d:sonar.token="${SONARQUBE_CS_API_KEY}" /d:sonar.host.url="${SONAR_HOST_URL}"
-          dotnet build
-          .\.sonar\scanner\dotnet-sonarscanner end /d:sonar.token="${SONARQUBE_CS_API_KEY}"
+          ./.sonar/scanner/dotnet-sonarscanner begin /k:"ERP-IMS" /d:sonar.token=$SONAR_TOKEN /d:sonar.host.url=$SONAR_HOST_URL
+          dotnet build ERP_backend/ERP-Inventory-Management-System.sln --configuration Release
+          ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token=$SONAR_TOKEN
 
   frontend-analysis:
     name: Analyze Frontend with SonarQube
