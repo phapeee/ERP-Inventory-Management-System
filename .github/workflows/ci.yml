@@ -106,6 +106,28 @@ jobs:
       - name: Build
         run: npm run build
 
+  trivy:
+    name: Trivy Scan (${{ matrix.target }})
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        target:
+          - ERP_backend
+          - ERP_frontend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Prepare Trivy cache directory
+        run: mkdir -p "$HOME/.cache/trivy"
+
+      - name: Run Trivy filesystem scan
+        run: |
+          docker run --rm \
+            -v "$HOME/.cache/trivy:/root/.cache/" \
+            -v "$PWD/${{ matrix.target }}:/workspace" \
+            aquasec/trivy fs --exit-code 1 --severity HIGH,CRITICAL /workspace
+
   api-tests:
     name: API Tests (Postman)
     runs-on: ubuntu-latest

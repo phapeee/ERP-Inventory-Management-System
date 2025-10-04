@@ -74,3 +74,16 @@ snyk monitor --all-projects --org=0ef84ead-e24b-4e1a-8775-0ddba821e8b9
 # Scan your source code for vulnerabilities
 snyk code test --org=0ef84ead-e24b-4e1a-8775-0ddba821e8b9
 ```
+
+## Trivy
+
+```bash
+# Run Trivy docker
+docker run aquasec/trivy
+
+# Scan backend
+docker run --rm -v "$(pwd)/ERP_backend:/workspace" -v "$HOME/.cache/trivy:/root/.cache/" aquasec/trivy fs /workspace
+
+# Scan frontend
+docker run --rm -v "$(pwd)/ERP_frontend:/workspace" -v "$HOME/.cache/trivy:/root/.cache/" aquasec/trivy fs /workspace
+```
