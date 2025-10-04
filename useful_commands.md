@@ -62,3 +62,15 @@ sonar -Dsonar.host.url=http://localhost:9000 -Dsonar.token=$SONARQUBE_TSJS_API_K
 ```bash
 docker compose -f "Docker Compose/sonarqube-cloudflared.compose.yaml" up -d
 ```
+
+## Snyk scans
+
+```bash
+# Run command in backend and frontend folders separately
+
+# Scan open-source packages for vulnerabilities
+snyk monitor --all-projects --org=0ef84ead-e24b-4e1a-8775-0ddba821e8b9
+
+# Scan your source code for vulnerabilities
+snyk code test --org=0ef84ead-e24b-4e1a-8775-0ddba821e8b9
+```
