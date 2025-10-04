@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json
+
+# The version of the configuration file format.
+version: "0.2"
+# The locale to use when spell checking. (e.g., en, en-GB, de-DE
+language: en
+
+# Scan the entire repository while skipping common generated directories.
+files:
+  - "**/*"
+
+# Reduce noise by leveraging .gitignore and explicitly excluding bulky outputs.
+useGitignore: true
+
+ignorePaths:
+  - ".git"
+  - ".github"
+  - "node_modules"
+  - "ERP_backend/ErpApi/bin"
+  - "ERP_backend/ErpApi/obj"
+  - "ERP_frontend/dist"
+  - "ERP_frontend/.angular"
+  - "coverage"
+  - "Docker Compose"
+  - "deployment"
