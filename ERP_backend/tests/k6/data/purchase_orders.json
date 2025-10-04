@@ -1,0 +1,18 @@
+[
+    {
+        "supplier": "Northwind Traders",
+        "reference": "PO-2025-0001",
+        "lines": [
+            { "sku": "NW-AXLE-01", "quantity": 15, "unitPrice": 19.99 },
+            { "sku": "NW-WHEEL-02", "quantity": 8, "unitPrice": 89.5 }
+        ]
+    },
+    {
+        "supplier": "Contoso Chemicals",
+        "reference": "PO-2025-0002",
+        "lines": [
+            { "sku": "CC-HAZ-ALPHA", "quantity": 120, "unitPrice": 4.75 },
+            { "sku": "CC-HAZ-BETA", "quantity": 75, "unitPrice": 6.2 }
+        ]
+    }
+]

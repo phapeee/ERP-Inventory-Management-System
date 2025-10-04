@@ -105,6 +105,86 @@ CHROME_PATH=/snap/bin/chromium npx lighthouse http://localhost:4200   --preset=d
 # Pull k6 docker
 docker pull grafana/k6
 
-# Run a smoke test
-docker run --rm -i grafana/k6 run -e API_BASE_URL=http://host.docker.internal:5000 - < ./ERP_backend/tests/k6/smoke.js
+# Smoke test
+docker run --rm \
+  -v "$PWD/ERP_backend/tests/k6:/src" \
+  -w /src \
+  grafana/k6 run \
+  -e API_BASE_URL=http://host.docker.internal:5000 \
+  smoke.js
+
+# Steady-state load test
+docker run --rm \
+  -v "$PWD/ERP_backend/tests/k6:/src" \
+  -w /src \
+  grafana/k6 run \
+  -e API_BASE_URL=http://host.docker.internal:5000 \
+  -e REQUEST_RATE=30 \
+  -e PRE_ALLOCATED_VUS=20 \
+  -e MAX_VUS=100 \
+  -e SCENARIO_DURATION=10m \
+  scenarios/steady_state.js
+
+# Ramp load test
+docker run --rm \
+  -v "$PWD/ERP_backend/tests/k6:/src" \
+  -w /src \
+  grafana/k6 run \
+  -e API_BASE_URL=http://host.docker.internal:5000 \
+  -e START_RATE=5 \
+  -e PRE_ALLOCATED_VUS=30 \
+  -e MAX_VUS=200 \
+  -e RAMP_STAGES='[ {"duration":"1m","target":20}, {"duration":"3m","target":80}, {"duration":"3m","target":120}, {"duration":"2m","target":40}, {"duration":"1m","target":0}]' \
+  scenarios/ramp_profile.js
+
+# Soak test
+docker run --rm \
+  -v "$PWD/ERP_backend/tests/k6:/src" \
+  -w /src \
+  grafana/k6 run \
+  -e API_BASE_URL=http://host.docker.internal:5000 \
+  -e REQUEST_RATE=12 \
+  -e PRE_ALLOCATED_VUS=30 \
+  -e MAX_VUS=180 \
+  -e SCENARIO_DURATION=2h \
+  --summary-export reports/soak-summary.json \
+  --tag run=soak-$(date +%Y%m%d%H%M) \
+  scenarios/soak_test.js
+
+# Stress test
+docker run --rm \
+  -v "$PWD/ERP_backend/tests/k6:/src" \
+  -w /src \
+  grafana/k6 run \
+  -e API_BASE_URL=http://host.docker.internal:5000 \
+  -e START_RATE=30 \
+  -e PRE_ALLOCATED_VUS=120 \
+  -e MAX_VUS=600 \
+  -e STRESS_STAGES='[{"duration":"2m","target":80},{"duration":"3m","target":200},{"duration":"4m","target":350},{"duration":"3m","target":500},{"duration":"2m","target":100},{"duration":"1m","target":0}]' \
+  scenarios/stress_test.js
+```
+
+## k6 load tests
+
+```bash
+# Run steady-state scenario with summary export (writes into ERP_backend/tests/k6/reports)
+./ERP_backend/tests/k6/run_steady_state.sh
+
+# Ad-hoc run with custom summary name
+docker run --rm \
+  -v "$PWD/ERP_backend/tests/k6:/src" \
+  -w /src \
+  grafana/k6 run \
+  -e API_BASE_URL=http://host.docker.internal:5000 \
+  --summary-export reports/custom-summary.json \
+  scenarios/steady_state.js
+
+# Stream metrics to InfluxDB (k6 container must reach influxdb:8086)
+docker run --rm \
+  -v "$PWD/ERP_backend/tests/k6:/src" \
+  -w /src \
+  -e K6_INFLUXDB_PASSWORD=$K6_INFLUXDB_PASSWORD \
+  grafana/k6 run \
+  --out influxdb=http://influxdb:8086/k6 \
+  scenarios/steady_state.js
 ```

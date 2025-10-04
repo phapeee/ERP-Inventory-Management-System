@@ -1,0 +1,22 @@
+[
+    {
+        "name": "Seed Gear Pack",
+        "price": 49.99
+    },
+    {
+        "name": "Harvest Gloves",
+        "price": 19.5
+    },
+    {
+        "name": "Warehouse Scanner",
+        "price": 249.0
+    },
+    {
+        "name": "Cold Chain Crate",
+        "price": 129.99
+    },
+    {
+        "name": "Hazmat Labels Pack",
+        "price": 14.75
+    }
+]
