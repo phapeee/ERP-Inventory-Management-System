@@ -12,8 +12,8 @@
     "e2e": "playwright test",
     "e2e:headed": "playwright test --headed",
     "build:prod": "ng build --configuration production",
-    "serve:dist": "serve -s dist/ERP_frontend -l 8080",
-    "lh:desktop": "CHROME_PATH=/snap/bin/chromium lighthouse http://localhost:8080 --preset=desktop --output html --output-path lighthouse-desktop.html --chrome-flags='--headless=new --user-data-dir=/tmp/lh_tmp'",
+    "serve:dist": "ng serve --port 3000",
+    "lh:desktop": "CHROME_PATH=/snap/bin/chromium lighthouse http://localhost:3000 --preset=desktop --output html --output-path lighthouse-desktop.html --chrome-flags='--headless=new --user-data-dir=/tmp/lh_tmp'",
     "audit:local": "CHROME_PATH=/snap/bin/chromium lhci autorun --config=lighthouserc.json"
   },
   "prettier": {
