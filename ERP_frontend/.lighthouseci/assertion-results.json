@@ -1,17 +1,1 @@
-[
-  {
-    "name": "auditRan",
-    "expected": 1,
-    "actual": 0,
-    "values": [
-      0,
-      0,
-      0
-    ],
-    "operator": ">=",
-    "passed": false,
-    "auditId": "interaction-to-next-paint",
-    "level": "error",
-    "url": "http://localhost:8080/"
-  }
-]
+[]

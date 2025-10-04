@@ -53,3 +53,4 @@ node_modules/
 lighthouse-desktop.html
 lighthouse-mobile.html
 lighthouse-report.html
+.lighthouseci
