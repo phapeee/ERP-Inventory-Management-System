@@ -49,3 +49,7 @@ node_modules/
 /blob-report/
 /playwright/.cache/
 /playwright/.auth/
+
+lighthouse-desktop.html
+lighthouse-mobile.html
+lighthouse-report.html

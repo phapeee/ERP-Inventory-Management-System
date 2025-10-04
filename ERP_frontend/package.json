@@ -10,7 +10,11 @@
     "test": "vitest",
     "test:run": "vitest run",
     "e2e": "playwright test",
-    "e2e:headed": "playwright test --headed"
+    "e2e:headed": "playwright test --headed",
+    "build:prod": "ng build --configuration production",
+    "serve:dist": "serve -s dist/ERP_frontend -l 8080",
+    "lh:desktop": "CHROME_PATH=/snap/bin/chromium lighthouse http://localhost:8080 --preset=desktop --output html --output-path lighthouse-desktop.html --chrome-flags='--headless=new --user-data-dir=/tmp/lh_tmp'",
+    "audit:local": "CHROME_PATH=/snap/bin/chromium lhci autorun --config=lighthouserc.json"
   },
   "prettier": {
     "printWidth": 100,
@@ -47,6 +51,7 @@
     "@angular/cli": "^20.3.4",
     "@angular/compiler-cli": "^20.3.3",
     "@angular/localize": "^20.3.3",
+    "@lhci/cli": "^0.15.1",
     "@nx/devkit": "^21.6.3",
     "@nx/vite": "^21.0.0",
     "@playwright/test": "^1.55.1",
@@ -57,6 +62,8 @@
     "@vitest/ui": "^3.2.4",
     "jasmine-core": "~5.9.0",
     "jsdom": "^27.0.0",
+    "lighthouse": "^12.8.2",
+    "serve": "^14.2.5",
     "typescript": "~5.9.2",
     "vite": "^6.0.0",
     "vite-tsconfig-paths": "^4.3.2",
