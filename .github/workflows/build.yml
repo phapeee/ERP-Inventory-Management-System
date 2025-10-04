@@ -50,33 +50,14 @@ jobs:
           ./.sonar/scanner/dotnet-sonarscanner end /d:sonar.token=$SONAR_TOKEN
 
   frontend-analysis:
-    name: Analyze Frontend with SonarQube
+    name: Build and Analyze Angular TS/JS with SonarQube
     runs-on: ubuntu-latest
-    env:
-      SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
-      SONAR_TOKEN: ${{ secrets.SONARQUBE_TSJS_API_KEY }}
 
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-
-      - name: Install sonar CLI
-        run: npm install -g @sonarsource/sonarqube-scan
-
-      - name: Install dependencies
-        working-directory: ERP_frontend
-        run: npm ci
-
-      - name: Run SonarQube scan (frontend)
-        working-directory: ERP_frontend
-        run: |
-          sonar \
-            -Dsonar.host.url=${SONAR_HOST_URL} \
-            -Dsonar.token=${SONAR_TOKEN} \
-            -Dsonar.projectKey=ERP-IMS-Frontend
+          fetch-depth: 0 # Shallow clones should be disabled for a better relevancy of analysis
+      - uses: SonarSource/sonarqube-scan-action@v5
+        env:
+          SONAR_HOST_URL: ${{ secrets.SONAR_HOST_URL }}
+          SONAR_TOKEN: ${{ secrets.SONARQUBE_TSJS_API_KEY }}
