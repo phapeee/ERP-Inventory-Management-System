@@ -87,3 +87,14 @@ docker run --rm -v "$(pwd)/ERP_backend:/workspace" -v "$HOME/.cache/trivy:/root/
 # Scan frontend
 docker run --rm -v "$(pwd)/ERP_frontend:/workspace" -v "$HOME/.cache/trivy:/root/.cache/" aquasec/trivy fs /workspace
 ```
+
+## Lighthouse
+
+```bash
+# more command in package.json
+# Run Lighthouse test
+CHROME_PATH=/snap/bin/chromium npx lighthouse http://localhost:4200   --preset=desktop   --output html   --output-path ./lighthouse-report.html   --chrome-flags="--headless=new --no-sandbox"
+
+# View report
+/snap/bin/chromium ./lighthouse-report.html
+```

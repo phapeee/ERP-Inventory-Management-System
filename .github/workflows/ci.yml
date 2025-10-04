@@ -288,3 +288,42 @@ jobs:
         with:
           name: newman-report
           path: newman-report.xml
+
+  lhci:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ERP_frontend # change if needed
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: ERP_frontend/package-lock.json
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build (production)
+        run: npm run build:prod
+
+      - name: Setup Chromium
+        id: chromium
+        uses: browser-actions/setup-chromium@v1
+
+      - name: Run Lighthouse CI (desktop)
+        env:
+          CHROME_PATH: ${{ steps.chromium.outputs.chromium-path }}
+        run: |
+          mkdir -p "${RUNNER_TEMP}/lh_tmp"
+          npx lhci autorun \
+            --config=lighthouserc.json \
+            --collect.settings.chromePath="${CHROME_PATH}"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: lighthouse-reports
+          path: ERP_frontend/.lighthouseci/*
