@@ -98,3 +98,13 @@ CHROME_PATH=/snap/bin/chromium npx lighthouse http://localhost:4200   --preset=d
 # View report
 /snap/bin/chromium ./lighthouse-report.html
 ```
+
+## k6
+
+```bash
+# Pull k6 docker
+docker pull grafana/k6
+
+# Run a smoke test
+docker run --rm -i grafana/k6 run -e API_BASE_URL=http://host.docker.internal:5000 - < ./ERP_backend/tests/k6/smoke.js
+```
