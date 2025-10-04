@@ -14,7 +14,10 @@
     "build:prod": "ng build --configuration production",
     "serve:dist": "ng serve --port 3000",
     "lh:desktop": "CHROME_PATH=/snap/bin/chromium lighthouse http://localhost:3000 --preset=desktop --output html --output-path lighthouse-desktop.html --chrome-flags='--headless=new --user-data-dir=/tmp/lh_tmp'",
-    "audit:local": "CHROME_PATH=/snap/bin/chromium lhci autorun --config=lighthouserc.json"
+    "audit:local": "CHROME_PATH=/snap/bin/chromium lhci autorun --config=lighthouserc.json",
+    "lint": "ng lint",
+    "format": "prettier \"src/**/*.{ts,html,css,scss}\" --write",
+    "format:check": "prettier --check \"src/**/*.{ts,html,css,scss}\""
   },
   "prettier": {
     "printWidth": 100,
@@ -60,11 +63,15 @@
     "@types/node": "^20.17.19",
     "@vitest/coverage-v8": "^3.2.4",
     "@vitest/ui": "^3.2.4",
+    "angular-eslint": "20.3.0",
+    "eslint": "^9.35.0",
     "jasmine-core": "~5.9.0",
     "jsdom": "^27.0.0",
     "lighthouse": "^12.8.2",
+    "prettier": "^3.6.2",
     "serve": "^14.2.5",
     "typescript": "~5.9.2",
+    "typescript-eslint": "8.40.0",
     "vite": "^6.0.0",
     "vite-tsconfig-paths": "^4.3.2",
     "vitest": "^3.2.4",
