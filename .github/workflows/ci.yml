@@ -101,6 +101,12 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Lint
+        run: npm run lint
+
+      - name: Prettier check
+        run: npm run format:check
+
       # ---------- Unit tests (Vitest) ----------
       # If using Angular's experimental Vitest runner:
       - name: Unit tests (Vitest via ng)
