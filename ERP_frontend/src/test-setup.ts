@@ -1,4 +1,15 @@
-import { provideZonelessChangeDetection } from '@angular/core';
 
-// make it easy to import in every TestBed
-export const withZoneless = () => [provideZonelessChangeDetection()];
+import '@angular/compiler';
+import '@analogjs/vitest-angular/setup-zone';
+
+import {
+  BrowserTestingModule,
+  platformBrowserTesting,
+} from '@angular/platform-browser/testing';
+import { getTestBed } from '@angular/core/testing';
+
+getTestBed().initTestEnvironment(
+  BrowserTestingModule,
+  platformBrowserTesting()
+);
+
