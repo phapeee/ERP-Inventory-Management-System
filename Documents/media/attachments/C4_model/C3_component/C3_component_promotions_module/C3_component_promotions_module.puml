@@ -24,7 +24,7 @@ Container_Boundary(promoBoundary, "Promotion Engine & Contract Pricing Module") 
   Component(integrationPublisher, "PromotionEventPublisher", "Event dispatcher", "Publishes promo-assigned, contract-updated events")
 }
 
-ContainerDb(sqlDb, "Operational Database", "Azure SQL", "Promotion & contract schemas")
+ContainerDb(sqlDb, "Operational Database", "Azure Database for PostgreSQL", "Promotion & contract schemas")
 Container(cache, "Redis Cache", "Azure Cache", "Caches compiled rules, price lists")
 Container(queue, "Azure Service Bus", "Topics/Queues", "Promotion events, reminders")
 System_Ext(orderModule, "Order Module", "Consumes rules during pricing")

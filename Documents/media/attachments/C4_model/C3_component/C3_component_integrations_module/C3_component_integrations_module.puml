@@ -26,7 +26,7 @@ Container_Boundary(intBoundary, "3PL & EDI Integration Module") {
   Component(apiClientFactory, "ApiClientFactory", "Adapter", "Creates REST clients per partner")
 }
 
-ContainerDb(sqlDb, "Integration Database", "Azure SQL", "EDI & 3PL tracking")
+ContainerDb(sqlDb, "Integration Database", "Azure Database for PostgreSQL", "EDI & 3PL tracking")
 Container(queue, "Azure Service Bus", "Topics/Queues", "Integration events, retries")
 Container(blob, "Blob Storage", "Azure Blob", "Archive EDI docs, labels")
 System_Ext(purchModule, "Purchasing Module", "Sends/receives PO/ASN invoices")

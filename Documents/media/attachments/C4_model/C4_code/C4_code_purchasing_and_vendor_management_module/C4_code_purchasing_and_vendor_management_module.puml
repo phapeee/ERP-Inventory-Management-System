@@ -1,0 +1,52 @@
+@startuml C4_Code_Purchasing_and_Vendor_Management
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+' Bounding box for the component
+Container_Boundary(purchasingBoundary, "Purchasing & Vendor Management Module") {
+
+    ' API Layer
+    Container(purchasingController, "PurchasingController", "ASP.NET Core MVC Controller", "Handles HTTP requests for purchasing and vendor management.")
+
+    ' Application Layer
+    Container(purchasingAppService, "PurchasingApplicationService", "C# Class", "Orchestrates purchasing and vendor management use cases.")
+    Container(purchasingEventHandler, "PurchasingEventHandler", "C# Class", "Handles domain events from other modules.")
+
+    ' Domain Layer
+    Container(poAggregate, "PurchaseOrderAggregate", "C# Class", "Represents a purchase order with its line items, status, and business rules.")
+    Container(vendorAggregate, "VendorAggregate", "C# Class", "Represents a vendor with its profile, contacts, and performance data.")
+    Container(reorderPolicy, "ReorderPolicy", "C# Class", "Domain service for calculating reorder points and quantities.")
+    Container(approvalWorkflow, "ApprovalWorkflow", "C# Class", "Domain service for managing purchase order approval chains.")
+
+    ' Infrastructure Layer
+    Container(purchasingRepository, "PurchasingRepository", "C# Class", "Implements interfaces for accessing and persisting purchasing and vendor data.")
+    Container(vendorAdapter, "VendorAdapter", "C# Class", "Adapter for communicating with external vendor systems (e.g., EDI, email).")
+    Container(eventPublisher, "EventPublisher", "C# Class", "Publishes domain events to the in-process event bus.")
+
+}
+
+' External Systems
+System_Ext(user, "User", "Purchasing Lead, Owner/GM")
+System_Ext(inventoryModule, "Inventory Module", "Provides stock level information.")
+System_Ext(vendorSystems, "Vendor Systems", "External vendor APIs or EDI endpoints.")
+System_Ext(eventBus, "In-Process Event Bus", "Mediator pattern implementation for inter-module communication.")
+System_Ext(database, "Database", "PostgreSQL database for storing purchasing and vendor data.")
+
+' Relationships
+Rel(user, purchasingController, "Uses", "HTTPS/JSON")
+Rel(purchasingController, purchasingAppService, "Invokes", "C#")
+Rel(purchasingAppService, poAggregate, "Works with", "C#")
+Rel(purchasingAppService, vendorAggregate, "Works with", "C#")
+Rel(purchasingAppService, reorderPolicy, "Uses", "C#")
+Rel(purchasingAppService, approvalWorkflow, "Uses", "C#")
+Rel(purchasingAppService, purchasingRepository, "Uses", "C#")
+Rel(purchasingAppService, vendorAdapter, "Uses", "C#")
+Rel(purchasingAppService, eventPublisher, "Uses", "C#")
+Rel(purchasingEventHandler, eventBus, "Handles events from", "C#")
+Rel(eventBus, inventoryModule, "Receives events from", "C#")
+Rel(purchasingRepository, database, "Reads from and writes to", "SQL")
+Rel(vendorAdapter, vendorSystems, "Interacts with", "HTTPS/JSON, EDI")
+Rel(eventPublisher, eventBus, "Publishes events to", "C#")
+
+@enduml

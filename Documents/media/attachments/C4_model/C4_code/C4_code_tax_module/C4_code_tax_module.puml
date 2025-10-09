@@ -1,71 +1,64 @@
-@startuml PineConePro_ERPIMS_C4_TaxAccountingModule
+@startuml PineConePro_ERPIMS_C4_TaxModule
 !include ../C4_Code.puml
 
 LAYOUT_WITH_LEGEND()
 
 Boundary(taxApi, "API Layer") {
-  Code(taxController, "TaxAccountingController", "ASP.NET Core Controller", "Expose tax calc, journal review, posting endpoints.")
-  Code(financeBatchController, "FinanceBatchController", "ASP.NET Core Controller", "Manage export runs, reconciliation jobs.")
+  Code(taxController, "TaxController", "ASP.NET Core Controller", "Exposes endpoints for tax calculation and reporting.")
+  Code(taxFilingController, "TaxFilingController", "ASP.NET Core Controller", "Manages tax filing report generation and retrieval.")
 }
 
 Boundary(taxApp, "Application Layer") {
-  Code(taxAppService, "TaxAccountingApplicationService", "Service", "Coordinates tax calculation, ledger posting, reconciliation.")
-  Code(journalAppService, "JournalApplicationService", "Service", "Manages journal lifecycle, approvals, batching.")
-  Code(reconAppService, "ReconciliationService", "Service", "Compares ERP vs accounting system, raises discrepancies.")
+  Code(taxAppService, "TaxApplicationService", "Service", "Orchestrates tax calculation and reporting workflows.")
+  Code(taxEventHandler, "TaxEventHandler", "Event Subscriber", "Subscribes to 'orders.order-shipped' to finalize tax transactions.")
   Code(taxRequestValidator, "TaxRequestValidator", "FluentValidation", "Validates tax input (addresses, product tax codes, exemptions).")
-  Code(journalValidator, "JournalValidator", "FluentValidation", "Ensures balanced entries, valid accounts, approval compliance.")
-  Code(exportJobScheduler, "ExportJobScheduler", "Workflow", "Schedules filing exports, GL sync jobs, monitors completion.")
+  Code(filingJobScheduler, "FilingJobScheduler", "Workflow", "Schedules and monitors tax filing report generation jobs.")
 }
 
 Boundary(taxDomain, "Domain Layer") {
-  Code(taxTransaction, "TaxTransactionAggregate", "DDD Aggregate", "Stores tax lines, liability, filing status, audit trail.")
-  Code(journalEntry, "JournalEntryAggregate", "DDD Aggregate", "Represents balanced debits/credits, approval states.")
-  Code(ledgerMapping, "LedgerMappingPolicy", "Domain Policy", "Maps business events to GL accounts, cost centers.")
-  Code(taxRateCache, "TaxRateCache", "Value Object", "Holds loaded tax rates, boundary tests, expiry.")
-  Code(taxEvents, "FinanceDomainEvents", "Event Definitions", "tax-calculated, journal-posted, reconciliation-failed, filing-generated.")
+  Code(taxTransaction, "TaxTransactionAggregate", "DDD Aggregate", "Stores tax lines, liability, filing status, and audit trail for a single transaction.")
+  Code(taxCalculator, "TaxCalculator", "Domain Service", "Computes tax based on jurisdiction, product taxability, and exemptions.")
+  Code(exemptionService, "ExemptionService", "Domain Service", "Manages and verifies customer tax exemption certificates.")
+  Code(hazmatFeeService, "HazmatFeeService", "Domain Service", "Calculates special taxes or fees for hazardous materials.")
+  Code(taxEvents, "TaxDomainEvents", "Event Definitions", "Defines events like 'tax-calculated' and 'tax-transaction-finalized'.")
 }
 
 Boundary(taxInfra, "Infrastructure & Integration") {
-  Code(taxRepository, "TaxRepository", "EF Core Repository", "Persists tax transactions, journals, filing records.")
-  Code(journalRepository, "JournalRepository", "EF Core Repository", "Stores approved journals awaiting export.")
-  Code(financeReadProjector, "FinanceReadProjector", "Projection", "Builds finance dashboards, liability summaries, close checklists.")
-  Code(taxServiceClient, "ExternalTaxServiceClient", "Adapter", "Calls external tax API for calculations, commits, filings.")
-  Code(accountingClient, "AccountingSystemClient", "Adapter", "Posts journals, fetches balances from GL system.")
-  Code(paymentReconciliationClient, "PaymentGatewayReconciliationClient", "Adapter", "Obtains settlement batches for reconciliation.")
-  Code(taxExporter, "TaxReturnExporter", "Exporter", "Generates tax return files, uploads to compliance portal.")
-  Code(journalPublisher, "JournalEventPublisher", "Event Publisher", "Emits journal events to Service Bus for other modules.")
-  Code(taxEventPublisher, "TaxEventPublisher", "Event Publisher", "Publishes tax events (liability updates, filing status).")
-  Code(financeCache, "FinanceCache", "Redis Cache", "Caches tax rates, GL account metadata, report filters.")
-  Code(financeAuditTrail, "FinanceAuditTrail", "Audit Logger", "Records approvals, adjustments, exports for compliance.")
+  Code(taxRepository, "TaxRepository", "EF Core Repository", "Persists TaxTransaction aggregates and exemption certificates.")
+  Code(taxReadModelProjector, "TaxReadModelProjector", "Projection", "Builds materialized views for tax liability reports.")
+  Code(taxServiceAdapter, "ExternalTaxServiceAdapter", "Adapter", "Connects to the external tax service (e.g., Avalara) for live calculations.")
+  Code(taxRateCache, "TaxRateCache", "Redis Adapter", "Caches tax rates by jurisdiction to be used as a fallback mechanism.")
+  Code(taxReportExporter, "TaxReportExporter", "Exporter", "Generates tax liability reports in formats suitable for filing.")
+  Code(taxEventPublisher, "TaxEventPublisher", "Event Publisher", "Publishes tax-related domain events to the in-process event bus.")
+  Code(auditLogger, "AuditLogger", "Logger", "Records a detailed audit trail for all calculations, API calls, and reports for compliance.")
 }
 
-Rel(taxController, taxAppService, "Invokes")
-Rel(financeBatchController, exportJobScheduler, "Schedules jobs")
-Rel(taxAppService, taxRequestValidator, "Validates")
-Rel(journalAppService, journalValidator, "Validates")
-Rel(taxAppService, taxTransaction, "Mutates aggregate")
-Rel(journalAppService, journalEntry, "Mutates aggregate")
-Rel(taxAppService, ledgerMapping, "Determine accounts")
-Rel(taxTransaction, taxRepository, "Persist")
-Rel(journalEntry, journalRepository, "Persist")
-Rel(taxRepository, financeReadProjector, "Trigger projection")
-Rel(journalRepository, financeReadProjector, "Trigger projection")
-Rel(financeReadProjector, financeCache, "Warm dashboards")
-Rel(taxAppService, taxServiceClient, "External calculation/commit")
-Rel(taxAppService, taxExporter, "Generate filings")
-Rel(exportJobScheduler, taxExporter, "Run exports")
-Rel(exportJobScheduler, accountingClient, "Schedule sync")
-Rel(reconAppService, accountingClient, "Fetch balances")
-Rel(reconAppService, paymentReconciliationClient, "Fetch settlements")
-Rel(reconAppService, financeReadProjector, "Update reconciliation status")
-Rel(taxAppService, journalPublisher, "Emit journal events")
-Rel(taxAppService, taxEventPublisher, "Emit tax events")
-Rel(journalEntry, journalEvents, "Emit events")
-Rel(taxTransaction, taxEvents, "Emit events")
-Rel(taxEvents, taxEventPublisher, "Dispatch")
-Rel(financeAuditTrail, financeCache, "Invalidate snapshot")
-Rel(taxAppService, financeAuditTrail, "Record actions")
-Rel(journalAppService, financeAuditTrail, "Record approvals")
-Rel(financeCache, taxController, "Serve quick reads")
+' Synchronous Flow: Tax Calculation
+Rel(taxController, taxAppService, "Initiates tax calculation")
+Rel(taxAppService, taxRequestValidator, "Validates request")
+Rel(taxAppService, taxCalculator, "Calculates tax")
+Rel(taxCalculator, exemptionService, "Checks for customer exemptions")
+Rel(taxCalculator, hazmatFeeService, "Checks for special hazmat fees")
+Rel(taxCalculator, taxServiceAdapter, "Gets live tax rates from external service")
+Rel(taxCalculator, taxRateCache, "Uses cached rates as fallback if external service fails")
+Rel(taxAppService, taxTransaction, "Creates or updates aggregate")
+Rel(taxTransaction, taxRepository, "Persists state")
+Rel(taxTransaction, taxEvents, "Raises 'tax-calculated' event")
+
+' Asynchronous Flow: Transaction Finalization
+Rel(taxEventHandler, taxAppService, "Handles 'orders.order-shipped' event to finalize transaction")
+Rel(taxAppService, taxTransaction, "Loads and finalizes aggregate")
+Rel(taxTransaction, taxEvents, "Raises 'tax-transaction-finalized' event")
+
+' Asynchronous Flow: Reporting
+Rel(taxFilingController, filingJobScheduler, "Triggers filing report generation")
+Rel(filingJobScheduler, taxReportExporter, "Runs export job")
+Rel(taxReportExporter, taxReadModelProjector, "Gets aggregated tax data")
+Rel(taxRepository, taxReadModelProjector, "Provides data for projection")
+
+' General Infrastructure Links
+Rel(taxEvents, taxEventPublisher, "Dispatches events to bus")
+Rel(taxAppService, auditLogger, "Records audit trail for all actions")
+Rel(taxCalculator, auditLogger, "Logs calculation details and API responses")
 
 @enduml

@@ -1,0 +1,75 @@
+@startuml PineConePro_ERPIMS_C3_AccountingSyncModule
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+' Actors
+Person(accountant, "Accountant", "Configures mappings, runs sync jobs, resolves errors")
+Person(owner, "Owner/GM", "Approves financial reports, views dashboards")
+
+' System Boundary
+Container_Boundary(accountingBoundary, "Accounting Sync Module") {
+  Component(accountingController, "AccountingController", "ASP.NET Core", "REST endpoints for manual sync, configuration, and reporting")
+  Component(accountingAppService, "AccountingSyncAppService", "Application Layer", "Orchestrates GL, AP, and AR synchronization and reconciliation workflows")
+  Component(accountingEventHandler, "AccountingEventHandler", "Event Subscriber", "Subscribes to operational events (e.g., OrderShipped) to create journal entries")
+
+  Component(journalEntryAggregate, "JournalEntry Aggregate", "Domain Model", "Represents a balanced journal entry with debits/credits, ready for posting")
+  
+  Component(ledgerMappingPolicy, "LedgerMappingPolicy", "Domain Policy", "Contains rules for mapping operational transactions to the correct GL accounts")
+  Component(reconciliationService, "ReconciliationService", "Domain Service", "Compares ERP data with external accounting system balances")
+  
+  Component(syncJobScheduler, "SyncJobScheduler", "Background Worker", "Schedules and triggers recurring batch sync and reconciliation jobs")
+
+  Component(accountingRepository, "AccountingRepository", "EF Core Repository", "Persists JournalEntry, LedgerAccountMapping, and SyncJob entities")
+  Component(accountingReadModel, "AccountingReadModel", "CQRS Read Store", "Provides materialized views for sync status and reconciliation dashboards")
+  
+  Component(accountingSystemAdapter, "AccountingSystemAdapter", "Adapter", "Connects to the external accounting system (e.g., QuickBooks, NetSuite) via API")
+  Component(auditLogger, "AuditLogger", "Telemetry", "Records a detailed audit trail for all synchronization and reconciliation activities")
+}
+
+' External Dependencies
+ContainerDb(sqlDb, "Operational Database", "Azure Database for PostgreSQL", "Accounting Sync schema")
+Container(bus, "In-Process Event Bus", "MediatR / Rebus", "Receives events from operational modules")
+System_Ext(orderModule, "Order Module", "Publishes OrderShipped, OrderCancelled events")
+System_Ext(purchasingModule, "Purchasing Module", "Publishes PurchaseOrderReceived events")
+System_Ext(accountingSystem, "External Accounting System", "e.g., QuickBooks, NetSuite", "The source of truth for financial records")
+System_Ext(observability, "Observability Stack", "Logs, metrics, alerts")
+
+' Relationships
+
+' Actors -> System
+Rel(accountant, accountingController, "Manage sync jobs and configuration")
+Rel(owner, accountingController, "View dashboards")
+
+' Controller -> Application Service
+Rel(accountingController, accountingAppService, "Issue application commands")
+
+' Event-driven flow
+Rel(orderModule, bus, "Publishes events")
+Rel(purchasingModule, bus, "Publishes events")
+Rel(accountingEventHandler, bus, "Subscribes to events")
+Rel(accountingEventHandler, accountingAppService, "Trigger journal creation")
+
+' Scheduled job flow
+Rel(syncJobScheduler, accountingAppService, "Trigger batch sync/reconciliation")
+
+' Application Service -> Domain & Adapters
+Rel(accountingAppService, ledgerMappingPolicy, "Get GL account for transaction")
+Rel(accountingAppService, journalEntryAggregate, "Create and manage journal entries")
+Rel(accountingAppService, reconciliationService, "Run reconciliation checks")
+Rel(accountingAppService, accountingSystemAdapter, "Push/pull data to/from external system")
+
+' Internal Services -> Persistence & Adapters
+Rel(journalEntryAggregate, accountingRepository, "Persist state")
+Rel(accountingRepository, sqlDb, "Read/write data")
+Rel(accountingReadModel, sqlDb, "Read projections")
+Rel(reconciliationService, accountingSystemAdapter, "Fetch external balances")
+
+' Adapter -> External System
+Rel(accountingSystemAdapter, accountingSystem, "Sync data via REST/HTTPS")
+
+' Telemetry
+Rel(accountingAppService, auditLogger, "Record audit trail")
+Rel(auditLogger, observability, "Forward logs")
+
+@enduml

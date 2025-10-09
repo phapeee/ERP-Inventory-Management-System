@@ -54,11 +54,7 @@ package "Inventory & Warehouse" #F3E8FF {
   class Serial <<MVP>>
 
   Warehouse "1" o-- "*" Location
-  Product "*" -- "*" Location : via
-  class _InventoryLink <<hidden>> {}
-  Product "*" -- _InventoryLink
-  _InventoryLink -- "*" Location
-  _InventoryLink -[hidden]-> InventoryItem
+  (Product, Location) .. InventoryItem
 
   InventoryItem "*" --> "0..1" Lot
   InventoryItem "*" --> "0..1" Serial
@@ -138,11 +134,23 @@ package "Accounting Sync" #F0F9FF {
 ' Analytics & Alerts
 ' ---------------------------------------------------------
 package "Operational Analytics & Alerts" #F7F7FF {
+  class Metric <<MVP>>
+  class Log <<MVP>>
+  class Alert <<MVP>>
   class KPI_Dashboard <<MVP>>
-  KPI_Dashboard "1" <-- "*" Order
-  KPI_Dashboard "1" <-- "*" InventoryItem
-  KPI_Dashboard "1" <-- "*" Vendor
-  KPI_Dashboard "1" <-- "*" TaxReport
+
+  KPI_Dashboard -- Metric
+  KPI_Dashboard -- Log
+  Alert -- Metric
+}
+
+' ---------------------------------------------------------
+' User & Role
+' ---------------------------------------------------------
+package "User & Role" #F0F0F0 {
+    class User <<MVP>>
+    class Role <<MVP>>
+    User "*" -- "1" Role
 }
 
 ' ---------------------------------------------------------
@@ -156,6 +164,8 @@ PurchaseOrder ..> InventoryItem : receive to stock
 PurchaseOrder ..> AccountEntry : post AP/GRNI
 RMA ..> InventoryItem : restock/scrap
 Shipment ..> AccountEntry : recognize revenue
+User ..> Order : created by
+User ..> PurchaseOrder : created by
 
 ' ---------------------------------------------------------
 ' Phase 2 roadmap

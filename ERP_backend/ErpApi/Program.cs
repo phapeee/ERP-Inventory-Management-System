@@ -19,6 +19,7 @@ if (string.IsNullOrWhiteSpace(connectionString))
 // Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
 // Launch the app and navigate to https://localhost:<port>/openapi/v1.json to view the generated OpenAPI document.
 builder.Services.AddOpenApi();
+builder.Services.AddApplicationInsightsTelemetry();
 
 // Setup link: https://www.c-sharpcorner.com/article/building-a-powerful-asp-net-core-web-api-with-postgresql/
 // Offical setup link: https://www.npgsql.org/efcore/index.html?tabs=onconfiguring

@@ -3,6 +3,8 @@
 
 LAYOUT_WITH_LEGEND()
 
+Component(inProcessEventBus, "In-Process Event Bus", "MediatR or similar", "Decouples modules by publishing/subscribing to domain events.")
+
 ' Boundaries for layers inside the module
 Boundary(orderApi, "API Layer") {
   Code(orderController, "OrderController", "ASP.NET Core Controller", "Receives REST requests for order lifecycle (create, cancel, status).")
@@ -10,61 +12,81 @@ Boundary(orderApi, "API Layer") {
 }
 
 Boundary(orderApp, "Application Layer") {
-  Code(orderAppService, "OrderApplicationService", "Service", "Coordinates validation, domain commands, sagas for order lifecycle.")
-  Code(rmaAppService, "RmaApplicationService", "Service", "Manages RMA workflows, inspections, refunds.")
+  Code(orderAppService, "OrderApplicationService", "Service", "Coordinates validation, domain commands, and initiates sagas.")
+  Code(rmaAppService, "RmaApplicationService", "Service", "Manages RMA workflows, inspections, and refund sagas.")
   Code(orderValidator, "OrderValidator", "FluentValidation", "Validates incoming order DTOs, credit limits, channel rules.")
   Code(rmaValidator, "RmaValidator", "FluentValidation", "Validates eligibility, warranty, serial/lot requirements.")
-  Code(orderSaga, "FulfillmentSagaHandler", "Saga Handler", "Drives async fulfillment (allocation, payment capture, shipment).")
-  Code(refundSaga, "RefundSagaHandler", "Saga Handler", "Coordinates refund capture, accounting sync for RMAs.")
+  Code(fulfillmentSaga, "FulfillmentSagaHandler", "Saga Handler", "Orchestrates async fulfillment by publishing commands and reacting to events (e.g., StockReserved, PaymentCaptured).")
+  Code(refundSaga, "RefundSagaHandler", "Saga Handler", "Coordinates refund process by publishing commands and reacting to events (e.g., RefundProcessed, InventoryRestocked).")
+  Code(inventoryEventHandler, "InventoryEventHandler", "Event Handler", "Subscribes to events from the Inventory module (e.g., StockReserved) to advance the fulfillment saga.")
+  Code(shippingEventHandler, "ShippingEventHandler", "Event Handler", "Subscribes to events from the Shipping module (e.g., OrderShipped) to update order status.")
 }
 
 Boundary(orderDomain, "Domain Layer") {
   Code(orderAggregate, "OrderAggregate", "DDD Aggregate", "Encapsulates order state transitions, line items, SLA tracking.")
   Code(rmaAggregate, "RmaAggregate", "DDD Aggregate", "Tracks return state, disposition, refund decisions.")
-  Code(allocationPolicy, "AllocationPolicy", "Domain Policy", "Determines reserve/backorder logic across warehouses.")
-  Code(paymentPolicy, "PaymentPolicy", "Domain Policy", "Selects auth/capture strategy, fraud escalation.")
-  Code(rmaPolicy, "DispositionPolicy", "Domain Policy", "Applies restock/refurbish/scrap decisions.")
-  Code(orderEvents, "OrderDomainEvents", "Event Definitions", "Domain events: OrderCreated, OrderPaid, OrderFulfilled, etc.")
+  Code(allocationPolicy, "AllocationPolicy", "Domain Policy", "Determines reserve/backorder logic based on available stock.")
+  Code(paymentPolicy, "PaymentPolicy", "Domain Policy", "Selects auth/capture strategy and triggers fraud screening.")
+  Code(rmaPolicy, "DispositionPolicy", "Domain Policy", "Applies restock/refurbish/scrap decisions based on inspection.")
+  Code(orderEvents, "OrderDomainEvents", "Event Definitions", "Domain events: OrderCreated, OrderPlacedOnHold, OrderFulfilled, etc.")
 }
 
 Boundary(orderInfra, "Infrastructure & Integration") {
-  Code(orderRepository, "OrderRepository", "EF Core Repository", "Persists aggregates to Azure SQL, handles optimistic concurrency.")
-  Code(orderReadModel, "OrderReadModelProjector", "Projection Handler", "Builds denormalized dashboards for order status & SLAs.")
-  Code(paymentFacade, "PaymentGatewayFacade", "Adapter", "Wraps payment provider SDK for auth/capture/refund.")
-  Code(inventoryFacade, "InventoryReservationClient", "Adapter", "Calls inventory API/events for reserve/release.")
-  Code(shippingFacade, "ShippingFulfillmentClient", "Adapter", "Requests label creation, shipment updates.")
-  Code(taxFacade, "TaxCalculationClient", "Adapter", "Delegates to tax module/service for order tax lines.")
-  Code(accountingPublisher, "AccountingEventPublisher", "Integration Publisher", "Emits journal commands to accounting module.")
-  Code(orderEventPublisher, "OrderEventPublisher", "Event Dispatcher", "Publishes domain events to Service Bus topics.")
+  Code(orderRepository, "OrderRepository", "EF Core Repository", "Persists aggregates to Azure Database for PostgreSQL.")
+  Code(orderReadModel, "OrderReadModelProjector", "Projection Handler", "Builds denormalized views for order status dashboards.")
+  Code(paymentAdapter, "PaymentGatewayAdapter", "Adapter", "Wraps payment provider SDK for auth/capture/refund.")
+  Code(fraudAdapter, "FraudScreeningAdapter", "Adapter", "Connects to an external fraud detection service.")
+  Code(notificationAdapter, "NotificationAdapter", "Adapter", "Sends customer notifications (email/SMS) via an external service.")
+  Code(domainEventPublisher, "DomainEventPublisher", "Event Dispatcher", "Publishes domain events from aggregates to the in-process event bus.")
+  Code(commandPublisher, "CommandPublisher", "Command Dispatcher", "Publishes commands (e.g., ReserveStock, ProcessPayment) to the in-process event bus.")
   Code(orderCache, "OrderCache", "Redis Cache", "Caches hot orders for CSRs and SLA checks.")
 }
 
+' API to Application
 Rel(orderController, orderAppService, "Invokes")
 Rel(rmaController, rmaAppService, "Invokes")
+
+' Application Layer Logic
 Rel(orderAppService, orderValidator, "Validates")
 Rel(rmaAppService, rmaValidator, "Validates")
-Rel(orderAppService, orderAggregate, "Loads & executes commands")
-Rel(orderAppService, allocationPolicy, "Consults")
-Rel(orderAppService, paymentPolicy, "Consults")
-Rel(orderAppService, orderSaga, "Starts/advances saga")
-Rel(orderSaga, orderAggregate, "Applies saga decisions")
-Rel(orderSaga, paymentFacade, "Capture/void payments")
-Rel(orderSaga, inventoryFacade, "Reserve/release stock")
-Rel(orderSaga, shippingFacade, "Request shipment")
-Rel(orderSaga, taxFacade, "Ensure tax locked")
-Rel(orderSaga, accountingPublisher, "Emit revenue/COGS events")
-Rel(rmaAppService, rmaAggregate, "Loads & mutates")
-Rel(rmaAppService, rmaPolicy, "Determines disposition")
-Rel(refundSaga, rmaAggregate, "Coordinates refund outcome")
-Rel(refundSaga, paymentFacade, "Issue refund")
-Rel(refundSaga, accountingPublisher, "Post credit memo")
-Rel(orderAggregate, orderRepository, "Persist")
-Rel(rmaAggregate, orderRepository, "Persist")
-Rel(orderRepository, orderCache, "Update cache")
-Rel(orderAppService, orderReadModel, "Project to read model")
+Rel(orderAppService, orderAggregate, "Loads & executes commands on")
+Rel(rmaAppService, rmaAggregate, "Loads & executes commands on")
+Rel(orderAppService, fulfillmentSaga, "Starts saga")
+Rel(rmaAppService, refundSaga, "Starts saga")
+
+' Domain Logic & Policies
+Rel(orderAggregate, allocationPolicy, "Consults")
+Rel(orderAggregate, paymentPolicy, "Consults")
+Rel(rmaAggregate, rmaPolicy, "Consults")
+Rel(paymentPolicy, fraudAdapter, "Requests fraud score from", "Interface")
+
+' Persistence
+Rel(orderAggregate, orderRepository, "Is persisted by")
+Rel(rmaAggregate, orderRepository, "Is persisted by")
+Rel(orderRepository, orderCache, "Updates cache for")
+Rel(orderAppService, orderReadModel, "Updates projections via events")
+Rel(orderReadModel, orderCache, "Warms cache for")
+
+' Event & Command Publishing
 Rel(orderAggregate, orderEvents, "Emits")
-Rel(orderEvents, orderEventPublisher, "Dispatch")
-Rel(orderReadModel, orderCache, "Warm cache")
-Rel(rmaAppService, shippingFacade, "Request return labels")
+Rel(rmaAggregate, orderEvents, "Emits")
+Rel(orderEvents, domainEventPublisher, "Are dispatched by")
+Rel(domainEventPublisher, inProcessEventBus, "Publishes events to")
+Rel(fulfillmentSaga, commandPublisher, "Publishes commands via")
+Rel(refundSaga, commandPublisher, "Publishes commands via")
+Rel(commandPublisher, inProcessEventBus, "Publishes commands to")
+
+' Event Subscriptions & Sagas
+Rel(inProcessEventBus, fulfillmentSaga, "Delivers events to")
+Rel(inProcessEventBus, refundSaga, "Delivers events to")
+Rel(inProcessEventBus, inventoryEventHandler, "Delivers Inventory events to")
+Rel(inProcessEventBus, shippingEventHandler, "Delivers Shipping events to")
+Rel(inventoryEventHandler, fulfillmentSaga, "Advances")
+Rel(shippingEventHandler, fulfillmentSaga, "Advances")
+
+' External Integrations
+Rel(fulfillmentSaga, paymentAdapter, "Executes payment commands on", "Interface")
+Rel(refundSaga, paymentAdapter, "Executes refund commands on", "Interface")
+Rel(inProcessEventBus, notificationAdapter, "Triggers notifications from events")
 
 @enduml

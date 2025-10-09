@@ -1,0 +1,100 @@
+@startuml PineConePro_ERPIMS_C2
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+
+' Personas (Internal Users)
+Person(owner, "Owner / GM")
+Person(opsManager, "Operations Manager")
+Person(purchasingLead, "Purchasing Lead")
+Person(warehouseAssoc, "Warehouse Associate (RF)")
+Person(csr, "Customer Service Rep")
+Person(ecomManager, "E-Commerce Manager")
+Person(b2bManager, "B2B Account Manager")
+Person(accountant, "Accountant")
+Person(itAdmin, "IT Administrator")
+
+' Personas (External Users)
+Person_Ext(b2bCustomer, "B2B Customer")
+Person_Ext(customer, "B2C Customer")
+
+
+System_Boundary(erpBoundary, "PineCone Pro ERP/IMS") {
+  Container(apigw, "Azure Application Gateway", "Azure WAF / App Gateway", "Acts as reverse proxy. Terminates TLS, enforces WAF, routes traffic to SPA & API.")
+  Container(spa, "Angular SPA", "Angular, TypeScript", "Responsive UI for internal users, B2B portal. Served by App Gateway.")
+  Container(api, "ERP Modular Monolith API", "ASP.NET Core on AKS", "Exposes REST APIs, orchestrates domain workflows. Uses in-process event bus for internal comms.")
+  
+  Container_Boundary(dataBoundary, "Data & Messaging") {
+    ContainerDb(db, "Operational Database", "Azure Database for PostgreSQL", "Multi-schema transactional store for all ERP modules.")
+    Container(cache, "Caching Tier", "Azure Cache for Redis", "Accelerates read-heavy catalog, pricing, session data.")
+    Container(queue, "External Message Bus", "Azure Service Bus (Topics/Queues)", "Asynchronous communication with external systems.")
+    Container(blob, "Document Storage", "Azure Blob Storage", "Stores attachments, hazmat docs, reports, exports.")
+    Container(keyvault, "Secret Management", "Azure Key Vault", "Stores credentials, API keys, certificates.")
+  }
+  Container(monitor, "Observability Stack", "Azure Monitor / App Insights", "Collects metrics, traces, logs for monitoring and alerting.")
+}
+
+' External Systems
+System_Ext(identityProvider, "Microsoft Entra ID", "SSO, MFA, RBAC claims issuance")
+System_Ext(paymentGateway, "Payment Gateway & Fraud Service", "Authorize/capture payments, fraud screening")
+System_Ext(taxService, "Tax Calculation Service", "Jurisdictional tax rates, compliance filings")
+System_Ext(carriers, "Carrier APIs", "Rate shopping, label purchase, tracking (UPS/FedEx/USPS)")
+System_Ext(threePL, "3PL Provider", "Inventory sync, fulfillment status")
+System_Ext(accountingSystem, "Accounting / GL System", "QuickBooks / NetSuite for AR/AP/GL")
+System_Ext(salesChannels, "E-Commerce Channels", "Web storefront, Amazon, POS. B2B Portal is part of the SPA.")
+System_Ext(observabilityOps, "Ops Team Tooling", "Dashboards, incident response (Teams/PagerDuty)")
+System_Ext(ciCd, "GitHub Actions Workflows", "Build/test/deploy pipeline, artifact promotion")
+System_Ext(vendorEDI, "Vendor EDI Systems", "Phase 2: PO/ASN/Invoice exchange")
+System_Ext(rfDevices, "RF Scanners", "Warehouse handhelds running a specialized client.")
+
+' User -> System Relationships
+Rel_Neighbor(owner, apigw, "Monitors KPIs, approves spend via SPA")
+Rel_Neighbor(opsManager, apigw, "Runs warehouse dashboards via SPA")
+Rel_Neighbor(purchasingLead, apigw, "Plans replenishment via SPA")
+Rel_Neighbor(csr, apigw, "Manages orders, RMAs via SPA")
+Rel_Neighbor(ecomManager, apigw, "Maintains catalog via SPA")
+Rel_Neighbor(b2bManager, apigw, "Manages B2B accounts, quotes via SPA")
+Rel_Neighbor(accountant, apigw, "Runs financial reports via SPA")
+Rel_Neighbor(itAdmin, apigw, "Admin UI, config via SPA")
+Rel_Neighbor(b2bCustomer, apigw, "Uses B2B Portal (SPA)")
+Rel_Neighbor(customer, salesChannels, "Places orders on external channels")
+Rel(warehouseAssoc, rfDevices, "Executes warehouse tasks")
+
+' RF Device -> System Relationships
+Rel(rfDevices, apigw, "Makes API calls", "REST/HTTPS")
+
+' App Gateway -> Internal Containers
+Rel(apigw, spa, "Serves SPA static content", "HTTPS")
+Rel(apigw, api, "Routes API calls", "HTTPS")
+
+' SPA -> API relationship (logical, goes via App Gateway)
+Rel(spa, api, "Makes API calls", "REST/GraphQL, JSON/HTTPS")
+
+' API -> Data/Messaging Boundary
+Rel(api, db, "Reads/Writes data", "EF Core")
+Rel(api, cache, "Reads/Writes session & cache data", "StackExchange.Redis")
+Rel(api, queue, "Publishes/consumes events for external systems", "AMQP")
+Rel(api, blob, "Stores/Retrieves files", "Azure SDK")
+Rel(api, keyvault, "Retrieves secrets at runtime", "Azure SDK")
+
+' API -> External Systems Relationships
+Rel(api, identityProvider, "Validates access tokens, gets claims", "OAuth2 / OIDC")
+Rel(api, paymentGateway, "Processes payments", "REST/HTTPS")
+Rel(api, taxService, "Calculates taxes", "REST/HTTPS")
+Rel(api, carriers, "Gets rates, creates labels", "REST/HTTPS")
+Rel(api, threePL, "Syncs orders & inventory", "API/EDI")
+Rel(api, accountingSystem, "Posts journals, invoices", "API/ETL")
+Rel(api, salesChannels, "Syncs catalog, inventory, status", "REST/Webhooks")
+Rel(api, vendorEDI, "Sends POs, receives ASNs (Phase 2)", "EDI/API")
+
+' External Systems -> API Relationships
+Rel(salesChannels, apigw, "Submits orders, customer updates", "REST/Webhooks")
+
+' Other relationships
+Rel(api, monitor, "Emits metrics, logs, traces")
+Rel(monitor, observabilityOps, "Sends alerts, provides dashboards")
+Rel(ciCd, apigw, "Deploys configuration", "IaC")
+Rel(ciCd, api, "Builds & deploys container image")
+Rel(ciCd, db, "Applies schema migrations")
+
+@enduml

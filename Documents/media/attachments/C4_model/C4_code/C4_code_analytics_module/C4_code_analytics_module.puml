@@ -3,71 +3,58 @@
 
 LAYOUT_WITH_LEGEND()
 
-Boundary(analyticsApi, "API Layer") {
-  Code(analyticsController, "AnalyticsController", "ASP.NET Core Controller", "Serves dashboards, metric queries, alert configuration APIs.")
-  Code(reportController, "ReportController", "ASP.NET Core Controller", "Triggers ad-hoc report exports, returns file artifacts.")
+Boundary(api, "API Layer") {
+  Code(analyticsController, "AnalyticsController", "ASP.NET Core Controller", "Serves persona-based dashboards and metrics.")
+  Code(reportController, "ReportController", "ASP.NET Core Controller", "Manages ad-hoc report generation and download.")
+  Code(alertController, "AlertController", "ASP.NET Core Controller", "APIs for CRUD operations on alert rules.")
 }
 
-Boundary(analyticsApp, "Application Layer") {
-  Code(analyticsAppService, "AnalyticsApplicationService", "Service", "Handles query orchestration, alert scheduling, subscription management.")
-  Code(alertConfigService, "AlertConfigurationService", "Service", "CRUD for alert rules, thresholds, recipients, maintenance windows.")
-  Code(reportScheduler, "ReportScheduler", "Workflow", "Schedules periodic report generation jobs.")
-  Code(datasetAdapter, "DatasetAdapter", "Facade", "Normalizes query requests to analytics read store / warehouse.")
+Boundary(app, "Application Layer") {
+  Code(analyticsAppService, "AnalyticsApplicationService", "Service", "Orchestrates fetching data for dashboards and reports.")
+  Code(alertAppService, "AlertApplicationService", "Service", "Manages the configuration of alert rules.")
+  
+  ' ELT Pipeline (Application Services)
+  Code(eventsHandler, "OperationalEventsHandler", "Event Subscriber", "(E/L) Subscribes to domain events and loads raw data into staging tables.")
+  Code(transformService, "TransformationService", "Background Service", "(T) Periodically transforms staged data into aggregated, query-optimized models.")
+  Code(alertingService, "AlertingService", "Background Service", "Checks alert rules against aggregated data and triggers notifications.")
 }
 
-Boundary(analyticsStream, "Streaming & Aggregation") {
-  Code(eventConsumer, "DomainEventConsumer", "Stream Processor", "Consumes domain events from Service Bus topics.")
-  Code(metricNormalizer, "MetricNormalizer", "Processor", "Transforms events into metric-friendly schema.")
-  Code(kpiAggregator, "KpiAggregator", "Aggregation Engine", "Calculates rolling KPIs (order SLA, inventory accuracy, vendor OTIF).")
-  Code(anomalyDetector, "AnomalyDetector", "ML Hook", "Detects anomalies using statistical/ML models.")
-  Code(alertEvaluator, "AlertEvaluator", "Rule Engine", "Evaluates KPI vs thresholds, anomaly outcomes, schedules alert actions.")
-  Code(alertDispatcher, "AlertDispatcher", "Workflow", "Routes alerts to email/SMS/Teams, opens incidents.")
+Boundary(domain, "Domain Layer") {
+  ' Note: The Analytics module is light on complex domain aggregates. Its primary entities are for configuration.
+  Code(alertRule, "AlertRuleAggregate", "DDD Aggregate", "Represents an alert rule with its metric, threshold, and notification settings.")
+  Code(dashboardConfig, "DashboardConfig", "Entity", "Defines the layout and widgets for a user or role-based dashboard.")
+  Code(reportDefinition, "ReportDefinition", "Entity", "Stores the query and parameters for a saved ad-hoc report.")
 }
 
-Boundary(analyticsData, "Data Storage & Access") {
-  Code(analyticsWarehouse, "AnalyticsWarehouse", "Synapse/DataMart", "Holds time-series aggregates, fact tables, dimensions.")
-  Code(analyticsReadModels, "AnalyticsReadModels", "Read Store", "Pre-aggregated views for dashboards, cached JSON payloads.")
-  Code(alertRepository, "AlertRepository", "EF Core Repository", "Persists alert definitions, schedules, notification history.")
-  Code(subscriptionRepository, "SubscriptionRepository", "Repository", "Stores user recipients, delivery prefs.")
-  Code(dataLakeWriter, "DataLakeWriter", "Storage Client", "Archives raw events, snapshots to Data Lake for deep analysis.")
-  Code(cacheLayer, "AnalyticsCache", "Redis Cache", "Caches hot KPI responses, alert states.")
+Boundary(infra, "Infrastructure & Integration") {
+  Code(configRepository, "ConfigurationRepository", "EF Core Repository", "Persists AlertRule, DashboardConfig, and ReportDefinition entities.")
+  Code(reportingStore, "ReportingDataStore", "Dapper/EF Core", "Adapter to read/write to the reporting schema (staging & aggregated tables).")
+  Code(notificationAdapter, "NotificationAdapter", "Adapter", "Connects to a gateway for sending alerts via Email/SMS.")
+  Code(dataExportAdapter, "DataExportAdapter", "Adapter", "Exposes an API for external BI tools to extract aggregated data.")
+  Code(auditLogger, "AuditLogger", "Logger", "Records all triggered alerts and generated reports for auditing.")
 }
 
-Boundary(analyticsIntegration, "Integrations") {
-  Code(notificationGateway, "NotificationGateway", "Adapter", "Connects to email/SMS/Teams services.")
-  Code(observabilityBridge, "ObservabilityBridge", "Adapter", "Publishes metrics to Azure Monitor/App Insights.")
-  Code(biPublisher, "BiDatasetPublisher", "Adapter", "Expose curated datasets to Power BI/Tableau.")
-}
+' API to Application Flow
+Rel(analyticsController, analyticsAppService, "Requests dashboard/metric data")
+Rel(reportController, analyticsAppService, "Initiates ad-hoc report generation")
+Rel(alertController, alertAppService, "Manages alert rule definitions")
 
-Rel(analyticsController, analyticsAppService, "Invokes")
-Rel(reportController, reportScheduler, "Schedules/export")
-Rel(analyticsAppService, alertConfigService, "Configures alerts")
-Rel(analyticsAppService, datasetAdapter, "Fetch datasets")
-Rel(alertConfigService, alertRepository, "Persist rules")
-Rel(alertConfigService, subscriptionRepository, "Persist recipients")
-Rel(datasetAdapter, analyticsReadModels, "Query cached views")
-Rel(datasetAdapter, analyticsWarehouse, "Query aggregates")
-Rel(analyticsAppService, cacheLayer, "Serve cached KPIs")
-Rel(eventConsumer, metricNormalizer, "Feeds")
-Rel(metricNormalizer, dataLakeWriter, "Archive raw & normalized events")
-Rel(metricNormalizer, kpiAggregator, "Supply metrics")
-Rel(kpiAggregator, analyticsReadModels, "Update aggregates")
-Rel(kpiAggregator, cacheLayer, "Warm cache")
-Rel(kpiAggregator, anomalyDetector, "Provide metric streams")
-Rel(anomalyDetector, alertEvaluator, "Flag anomalies")
-Rel(alertEvaluator, alertRepository, "Load alert definitions")
-Rel(alertEvaluator, cacheLayer, "Store alert state")
-Rel(alertEvaluator, alertDispatcher, "Trigger notifications")
-Rel(alertDispatcher, notificationGateway, "Send messages")
-Rel(alertDispatcher, cacheLayer, "Update alert history")
-Rel(reportScheduler, analyticsWarehouse, "Query data")
-Rel(reportScheduler, notificationGateway, "Deliver reports")
-Rel(observabilityBridge, observabilityBridge, "")
-Rel(kpiAggregator, observabilityBridge, "Emit metrics")
-Rel(cacheLayer, analyticsController, "Serve quick responses")
-Rel(biPublisher, analyticsWarehouse, "Publish datasets")
-Rel(notificationGateway, cacheLayer, "Record delivery status")
-Rel(observabilityBridge, analyticsWarehouse, "Publish telemetry")
-Rel(anomalyDetector, analyticsWarehouse, "Persist anomaly context")
+' Application to Domain/Infrastructure Flow
+Rel(analyticsAppService, reportingStore, "Queries aggregated models for dashboards/reports")
+Rel(alertAppService, configRepository, "Saves and retrieves AlertRule aggregates")
+Rel(alertAppService, alertRule, "Manages the lifecycle of")
+
+' ELT Pipeline Flow
+Rel(eventsHandler, reportingStore, "(Load) Writes raw event data to staging tables")
+Rel(transformService, reportingStore, "(Transform) Reads from staging tables and writes to aggregated models")
+
+' Alerting Flow
+Rel(alertingService, configRepository, "Loads active alert rules")
+Rel(alertingService, reportingStore, "Queries aggregated models to check rule conditions")
+Rel(alertingService, notificationAdapter, "Sends notification if threshold is breached")
+Rel(alertingService, auditLogger, "Logs the triggered alert")
+
+' External BI Integration
+Rel(analyticsController, dataExportAdapter, "Exposes data through")
 
 @enduml

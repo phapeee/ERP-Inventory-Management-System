@@ -127,7 +127,7 @@ package "Lot & Serial" {
   rectangle "lot-updated" <<Event>> as evt_lot_updated
   rectangle "lot-recalled" <<Event>> as evt_lot_recalled
   rectangle "serial-created" <<Event>> as evt_serial_created
-  rectangle "serial-assigned (dup)" <<Event>> as evt_serial_assigned2
+  rectangle "serial-assigned-to-product" <<Event>> as evt_serial_assigned2
 
   cmd_lot_upd --> evt_lot_created
   cmd_lot_upd --> evt_lot_updated
@@ -229,8 +229,5 @@ evt_po_received ..> cmd_inv_receive : receive goods
 evt_ord_fulfilled ....> pol_gl_post : COGS/revenue
 evt_payment ..> pol_gl_post
 evt_lot_recalled ..> cmd_ord_cancel : stop fulfillment
-evt_serial_assigned .[hidden].> evt_lot_recalled
-evt_delivered .[hidden].> pol_kpi
-evt_journal ..[hidden].> pol_3pl
 
 @enduml

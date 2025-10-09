@@ -1,0 +1,82 @@
+@startuml PineConePro_ERPIMS_C3_PurchasingModule
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+' Actors
+Person(purchasingLead, "Purchasing Lead", "Manages vendors, creates and approves POs")
+Person(owner, "Owner/GM", "Approves high-value purchase orders")
+
+' System Boundary
+Container_Boundary(purchasingBoundary, "Purchasing & Vendor Management Module") {
+  Component(purchasingController, "PurchasingController", "ASP.NET Core", "REST endpoints for POs, vendors, and approvals")
+  Component(purchasingAppService, "PurchasingApplicationService", "Application Layer", "Coordinates PO creation, approvals, and vendor management workflows")
+  Component(purchasingEventHandler, "PurchasingEventHandler", "Event Subscriber", "Subscribes to events like inventory.reorder-point-breached to trigger automated PO creation")
+  
+  Component(poAggregate, "PurchaseOrder Aggregate", "Domain Model", "Encapsulates PO state, line items, approvals, and status (e.g., Sent, Received)")
+  Component(vendorAggregate, "Vendor Aggregate", "Domain Model", "Manages vendor information, contacts, and performance scorecards")
+  
+  Component(reorderPolicy, "Reorder Policy", "Domain Service", "Contains logic to generate draft POs based on reorder signals from the Inventory module")
+  Component(approvalWorkflow, "Approval Workflow Engine", "Domain Service", "Routes POs for approval based on configurable rules like value thresholds")
+  Component(vendorScorecardSvc, "Vendor Scorecard Service", "Domain Service", "Calculates and updates vendor performance metrics (on-time delivery, quality, etc.)")
+
+  Component(purchasingRepository, "PurchasingRepository", "EF Core Repository", "Persists PurchaseOrder and Vendor aggregates")
+  Component(purchasingReadModel, "PurchasingReadModel", "CQRS Read Store", "Provides materialized views for spend analysis and vendor performance dashboards")
+  
+  Component(eventPublisher, "PurchasingEventPublisher", "Event Dispatcher", "Publishes events like purchasing.purchase-order-created")
+  Component(vendorAdapter, "VendorIntegrationAdapter", "Adapter", "Sends POs to vendors via configured methods (e.g., EDI, Email)")
+  Component(auditLogger, "AuditLogger", "Telemetry", "Records all changes and approvals for compliance")
+}
+
+' External Dependencies
+ContainerDb(sqlDb, "Operational Database", "Azure Database for PostgreSQL", "Purchasing and vendor schemas")
+Container(bus, "In-Process Event Bus", "MediatR / Rebus", "Handles communication with other internal modules")
+System_Ext(inventoryModule, "Inventory Module", "Publishes reorder point events")
+System_Ext(accountingModule, "Accounting Module", "Consumes PO and invoice data for AP processing")
+System_Ext(vendorSystems, "Vendor Systems", "External vendor platforms (EDI, email gateways)")
+System_Ext(observability, "Observability Stack", "Logs, metrics, traces")
+
+' Relationships
+
+' Actors -> System
+Rel(purchasingLead, purchasingController, "Manage vendors, POs, and approvals")
+Rel(owner, purchasingController, "Approve high-value POs")
+
+' Controller -> Application Service
+Rel(purchasingController, purchasingAppService, "Issue application commands")
+
+' Application Service -> Domain Layer & Adapters
+Rel(purchasingAppService, poAggregate, "Execute PO commands")
+Rel(purchasingAppService, vendorAggregate, "Manage vendor data")
+Rel(purchasingAppService, approvalWorkflow, "Route POs for approval")
+Rel(purchasingAppService, vendorScorecardSvc, "Update vendor scorecards")
+Rel(purchasingAppService, vendorAdapter, "Send POs to vendors")
+Rel(purchasingAppService, purchasingReadModel, "Query dashboards")
+
+' Event Handlers
+Rel(purchasingEventHandler, bus, "Subscribes to internal events")
+Rel(purchasingEventHandler, reorderPolicy, "Trigger automated PO creation")
+Rel(reorderPolicy, purchasingAppService, "Create draft PO")
+
+' Domain -> Persistence & Events
+Rel(poAggregate, purchasingRepository, "Persist state")
+Rel(vendorAggregate, purchasingRepository, "Persist state")
+Rel(purchasingRepository, sqlDb, "Read/write data")
+Rel(purchasingReadModel, sqlDb, "Read projections")
+
+Rel(poAggregate, eventPublisher, "Emit domain events")
+Rel(vendorAggregate, eventPublisher, "Emit domain events")
+Rel(eventPublisher, bus, "Publish events")
+
+' Telemetry
+Rel(purchasingAppService, auditLogger, "Record audit trail")
+Rel(auditLogger, observability, "Forward logs")
+
+' Inter-module Communication (via Event Bus)
+Rel(bus, inventoryModule, "Receives reorder events from")
+Rel(bus, accountingModule, "Publishes PO data to")
+
+' Adapter -> External Systems
+Rel(vendorAdapter, vendorSystems, "Send PO via EDI/Email")
+
+@enduml

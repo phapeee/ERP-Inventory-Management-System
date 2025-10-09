@@ -1,0 +1,95 @@
+@startuml PineConePro_ERPIMS_C3_OrderModule
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(csr, "CSR", "Creates/edits orders, issues RMAs")
+Person(owner, "Owner/GM", "Approves high-value actions, reviews fraud holds")
+Person(b2bManager, "B2B Account Manager", "Creates and manages B2B client orders")
+Person(returnsTech, "Returns Technician", "Inspects items, determines disposition")
+Person(accountant, "Accountant", "Approves refunds, reconciles credits")
+
+Container_Boundary(orderBoundary, "Orders & RMA Module") {
+  Component(orderController, "OrderController", "ASP.NET Core", "REST endpoints for order lifecycle, RMA processing")
+  Component(orderAppService, "OrderApplicationService", "Application layer", "Coordinates order, fulfillment, and returns workflows")
+  Component(orderEventHandler, "OrderEventHandler", "Event subscriber", "Subscribes to internal events (e.g., warehouse, shipping) to drive order status updates")
+  Component(orderValidator, "OrderValidator", "FluentValidation", "Validates customer data, payment details, and order contents")
+  
+  Component(orderDomain, "Order Aggregate", "Domain model", "Encapsulates order state transitions, business rules, and line items")
+  Component(rmaDomain, "RMA Aggregate", "Domain model", "Handles return authorizations, inspections, and dispositions")
+  
+  Component(paymentPolicy, "PaymentPolicy", "Domain policy", "Handles fraud screening, payment holds, and manual approval routing")
+  Component(allocationPolicy, "AllocationPolicy", "Domain policy", "Allocates inventory, creates backorders based on stock levels")
+  Component(dispositionPolicy, "Disposition Policy Engine", "Rules engine", "Determines restock vs refurbish vs scrap based on inspection")
+  
+  Component(inspectionWorkflow, "Inspection Workflow", "Domain service", "Guides technicians through inspection steps and captures results")
+  Component(evidenceManager, "Evidence Manager", "Storage client", "Stores photos and reports from inspections")
+
+  Component(orderRepository, "OrderRepository", "EF Core repository", "Persists order, shipment, and RMA aggregates")
+  Component(orderReadModel, "OrderReadModel", "CQRS read store", "Provides materialized views for dashboards and customer queries")
+  
+  Component(eventPublisher, "OrderEventPublisher", "Event dispatcher", "Publishes order and RMA-related events to the in-process bus")
+  Component(paymentAdapter, "PaymentGatewayAdapter", "Adapter", "Connects to external payment gateways for authorization and capture")
+  Component(notificationService, "NotificationService", "Adapter", "Sends customer notifications (email/SMS) for order status changes")
+  Component(auditLogger, "AuditLogger", "Telemetry", "Captures a detailed audit trail of all changes to orders and RMAs")
+}
+
+ContainerDb(sqlDb, "Operational Database", "Azure Database for PostgreSQL", "Orders, RMAs, shipments schema")
+Container(cache, "Redis Cache", "Azure Cache for Redis", "Caches hot orders and user session data")
+Container(bus, "In-Process Event Bus", "MediatR/Rebus", "Handles communication between internal modules")
+Container(blob, "Document Store", "Azure Blob Storage", "Inspection photos, reports")
+
+System_Ext(paymentGateway, "Payment Gateway", "Authorize/capture payments, fraud checks")
+System_Ext(inventoryModule, "Inventory Module", "Provides ATP data, consumes allocation events")
+System_Ext(shippingModule, "Shipping Module", "Provides shipping rates, consumes shipment creation events")
+System_Ext(taxModule, "Tax Module", "Provides tax calculations")
+System_Ext(accountingModule, "Accounting Module", "Consumes invoicing and refund events")
+System_Ext(observability, "Observability Stack", "Logs, metrics, traces")
+
+Rel(csr, orderController, "Create/edit orders, process returns")
+Rel(owner, orderController, "Approve orders/refunds")
+Rel(b2bManager, orderController, "Manage B2B orders")
+Rel(returnsTech, orderController, "Perform inspections")
+Rel(accountant, orderController, "Approve refunds")
+
+Rel(orderController, orderAppService, "Issue application commands")
+Rel(orderAppService, orderValidator, "Validate order data")
+Rel(orderAppService, orderDomain, "Invoke domain behaviors")
+Rel(orderAppService, rmaDomain, "Handle returns lifecycle")
+Rel(orderAppService, inspectionWorkflow, "Coordinate inspection process")
+Rel(inspectionWorkflow, evidenceManager, "Store inspection evidence")
+Rel(evidenceManager, blob, "Save/load photos and reports")
+Rel(orderAppService, dispositionPolicy, "Determine return disposition")
+Rel(orderAppService, allocationPolicy, "Request inventory allocation")
+Rel(orderAppService, paymentPolicy, "Apply payment rules")
+Rel(orderAppService, paymentAdapter, "Process payments")
+Rel(paymentAdapter, paymentGateway, "Authorize, capture, refund")
+
+Rel(orderAppService, inventoryModule, "Get ATP data", "API")
+Rel(orderAppService, taxModule, "Calculate tax", "API")
+Rel(orderAppService, shippingModule, "Get shipping rates", "API")
+
+Rel(orderDomain, orderRepository, "Persist aggregate")
+Rel(rmaDomain, orderRepository, "Persist RMA")
+Rel(orderRepository, sqlDb, "Save/load aggregates")
+Rel(orderReadModel, sqlDb, "Read projections")
+Rel(orderAppService, orderReadModel, "Query read models")
+Rel(orderAppService, cache, "Cache hot orders")
+
+Rel(orderDomain, eventPublisher, "Emit domain events")
+Rel(rmaDomain, eventPublisher, "Emit RMA events")
+Rel(eventPublisher, bus, "Publish events (e.g., OrderCreated, RmaInspected)")
+
+Rel(orderEventHandler, bus, "Subscribe to events")
+Rel(orderEventHandler, orderAppService, "Update order status")
+
+Rel(notificationService, bus, "Subscribe to events")
+Rel(auditLogger, bus, "Subscribe to events")
+Rel(auditLogger, observability, "Forward audit trail")
+
+' Inventory, Shipping, and Accounting modules consume events from the bus
+Rel(bus, inventoryModule, "Notify stock reservation/restock")
+Rel(bus, shippingModule, "Notify shipment/return label creation")
+Rel(bus, accountingModule, "Notify invoicing/refunds")
+
+@enduml

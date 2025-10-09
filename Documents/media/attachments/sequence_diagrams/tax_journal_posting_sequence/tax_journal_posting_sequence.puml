@@ -5,7 +5,7 @@ title Tax Calculation & Journal Posting Flow
 
 Participant_Module(orderModule, "Order Module")
 Participant_Controller(taxController, "Finance API", "TaxAccountingController")
-Participant_App(taxApp, "Tax App Service")
+Participant_App(taxApp, "Tax Service (AKS)")
 Participant_Validator(taxValidator, "TaxRequestValidator")
 Participant_Domain(taxAggregate, "TaxTransaction Aggregate")
 Participant_Domain(journalAggregate, "JournalEntry Aggregate")

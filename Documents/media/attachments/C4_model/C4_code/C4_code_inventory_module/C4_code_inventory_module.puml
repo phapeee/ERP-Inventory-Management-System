@@ -15,12 +15,15 @@ Boundary(invApp, "Application Layer") {
   Code(pickingFlow, "PickingWavePlanner", "Workflow", "Creates pick waves, allocations, replenishment tasks.")
   Code(cycleCountFlow, "CycleCountScheduler", "Workflow", "Generates ABC cycle count plans, monitors completion.")
   Code(inventoryValidator, "InventoryValidator", "FluentValidation", "Checks bins, permissions, lot rules.")
+  Code(orderEventHandler, "OrderEventHandler", "Event Handler", "Subscribes to Order events (e.g., OrderCreated) to allocate stock.")
+  Code(purchasingEventHandler, "PurchasingEventHandler", "Event Handler", "Subscribes to Purchasing events (e.g., AsnReady) to trigger receiving.")
 }
 
 Boundary(invDomain, "Domain Layer") {
   Code(inventoryItemAgg, "InventoryItemAggregate", "DDD Aggregate", "Maintains on-hand, reserved, ATP per location/bin.")
   Code(lotAgg, "LotAggregate", "DDD Aggregate", "Stores lot metadata, expiry, supplier links.")
   Code(serialAgg, "SerialAggregate", "DDD Aggregate", "Tracks serialized items, warranty, assignment.")
+  Code(inventoryValuationService, "InventoryValuationService", "Domain Service", "Manages inventory costing (FIFO, LIFO, weighted average) and COGS updates.")
   Code(binPolicy, "BinAssignmentPolicy", "Domain Policy", "Calculates optimal bin based on capacity, hazmat, velocity.")
   Code(pickingPolicy, "PickingPolicy", "Domain Policy", "Determines wave strategy, FEFO/FIFO rules.")
   Code(reorderPolicy, "ReorderSignalPolicy", "Domain Policy", "Identifies reorder point breaches, triggers purchasing.")
@@ -32,18 +35,18 @@ Boundary(invInfra, "Infrastructure & Integration") {
   Code(taskRepository, "InventoryTaskRepository", "Repository", "Stores RF tasks, assignments, status.")
   Code(atpProjector, "AtpProjectionHandler", "Projection", "Builds ATP snapshots for order allocation.")
   Code(binHeatmapProjector, "BinHeatmapProjector", "Projection", "Aggregates velocity, saturation metrics.")
-  Code(changeFeedPublisher, "InventoryEventPublisher", "Event Dispatcher", "Publishes inventory domain events to Service Bus.")
+  Code(inventoryEventPublisher, "InventoryEventPublisher", "Event Dispatcher", "Publishes inventory domain events to the In-Process Event Bus.")
   Code(inventoryCache, "InventoryCache", "Redis Cache", "Caches ATP results and RF task lists.")
-  Code(orderClient, "OrderAllocationClient", "Adapter", "Notifies order module about reserves/releases.")
-  Code(purchasingClient, "PurchasingReplenishmentClient", "Adapter", "Sends replenishment alerts, receives ASN confirmations.")
-  Code(shippingClient, "ShippingPickClient", "Adapter", "Provides pick completion, handoff to packing.")
   Code(threePlClient, "ThirdPartyLogisticsClient", "Adapter", "Syncs quantities with 3PL warehouses.")
   Code(blobClient, "ReceivingDocumentClient", "Blob Client", "Stores receiving docs, inspection images.")
 }
 
+Component(inProcessEventBus, "In-Process Event Bus", "MediatR or similar", "Decouples modules by publishing/subscribing to domain events.")
+
 Rel(inventoryController, inventoryAppService, "Invokes")
 Rel(rfHub, inventoryAppService, "Routes RF commands")
 Rel(inventoryAppService, inventoryValidator, "Validates")
+Rel(inventoryAppService, inventoryValuationService, "Uses for costing")
 Rel(inventoryAppService, receivingFlow, "Executes")
 Rel(inventoryAppService, putawayFlow, "Executes")
 Rel(inventoryAppService, pickingFlow, "Executes")
@@ -62,20 +65,24 @@ Rel(inventoryRepository, atpProjector, "Trigger projection")
 Rel(inventoryRepository, binHeatmapProjector, "Trigger projection")
 Rel(atpProjector, inventoryCache, "Warm cache")
 Rel(binHeatmapProjector, inventoryCache, "Update heatmaps")
-Rel(inventoryEvents, changeFeedPublisher, "Dispatch")
+
+' Event-driven communication
 Rel(inventoryItemAgg, inventoryEvents, "Emit events")
 Rel(lotAgg, inventoryEvents, "Emit events")
 Rel(serialAgg, inventoryEvents, "Emit events")
-Rel(changeFeedPublisher, orderClient, "Notify reserves/releases")
-Rel(changeFeedPublisher, purchasingClient, "Notify reorder triggers")
-Rel(changeFeedPublisher, shippingClient, "Notify pick completion")
-Rel(changeFeedPublisher, threePlClient, "Sync updates")
+Rel(inventoryEvents, inventoryEventPublisher, "Dispatch")
+Rel(inventoryEventPublisher, inProcessEventBus, "Publishes to")
+
+' Subscriptions from other modules are handled by event handlers
+Rel(inProcessEventBus, orderEventHandler, "Delivers Order events")
+Rel(inProcessEventBus, purchasingEventHandler, "Delivers Purchasing events")
+Rel(orderEventHandler, inventoryAppService, "Triggers stock allocation")
+Rel(purchasingEventHandler, receivingFlow, "Initiates receiving workflow")
+
+' External Integrations
 Rel(inventoryAppService, blobClient, "Upload docs")
 Rel(taskRepository, inventoryCache, "Publish RF tasks")
 Rel(inventoryAppService, taskRepository, "Assign tasks")
-Rel(orderClient, inventoryAppService, "Reserve confirmations")
-Rel(purchasingClient, receivingFlow, "Send ASN data")
-Rel(shippingClient, pickingFlow, "Confirm picks")
 Rel(threePlClient, inventoryAppService, "Sync adjustments")
 
 @enduml

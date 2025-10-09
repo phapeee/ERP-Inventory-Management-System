@@ -5,10 +5,9 @@ title Order Fulfillment (Order Capture → Shipment)
 
 Participant_UI(customer, "Customer / Channel", "Web/B2B/POS")
 Participant_Controller(orderController, "Orders API", "OrderController")
-Participant_App(orderApp, "Order App Service", "OrderApplicationService")
+Participant_App(orderApp, "Order Service (AKS)", "OrderApplicationService")
 Participant_Aggregate(orderAgg, "Order Aggregate")
 Participant_Policy(allocationPolicy, "Allocation Policy")
-Participant_Saga(orderSaga, "Fulfillment Saga")
 Participant_Payment(paymentFacade, "Payment Facade")
 Participant_Inventory(inventoryFacade, "Inventory Reservation")
 Participant_Shipping(shippingFacade, "Shipping Client")
@@ -27,25 +26,23 @@ orderApp -> allocationPolicy : DetermineATP(order)
 allocationPolicy --> orderApp : ReservationPlan
 orderApp -> orderAgg : Apply(CreateOrder)
 orderAgg --> orderApp : OrderCreatedEvent
-orderApp -> orderSaga : StartFulfillment(orderId)
-orderSaga -> paymentFacade : AuthorizePayment(order)
-paymentFacade --> orderSaga : PaymentAuthorized
-orderSaga -> inventoryFacade : ReserveInventory(order)
-inventoryFacade --> orderSaga : ReservationConfirmed
-orderSaga -> shippingFacade : PrepareShipment(order)
-shippingFacade --> orderSaga : ShipmentPlanned
-orderSaga -> orderAgg : Apply(PaymentCaptured, InventoryReserved)
-orderAgg --> orderSaga : OrderUpdatedEvents
-orderSaga -> accountingPublisher : Publish(OrderRevenueRecognized)
+orderApp -> paymentFacade : AuthorizePayment(order)
+paymentFacade --> orderApp : PaymentAuthorized
+orderApp -> inventoryFacade : ReserveInventory(order)
+inventoryFacade --> orderApp : ReservationConfirmed
+orderApp -> shippingFacade : PrepareShipment(order)
+shippingFacade --> orderApp : ShipmentPlanned
+orderApp -> orderAgg : Apply(PaymentCaptured, InventoryReserved)
+orderAgg --> orderApp : OrderUpdatedEvents
+orderApp -> accountingPublisher : Publish(OrderRevenueRecognized)
 accountingPublisher --> eventBus : Event
-orderSaga -> eventBus : Publish(OrderPaid, OrderFulfilled)
-orderSaga -> shippingModule : DispatchShipment
-shippingModule --> eventBus : ShipmentDispatched
-shippingModule -> inventoryModule : NotifyPickComplete
-inventoryModule --> eventBus : InventoryAdjusted
-orderSaga -> analyticsModule : RecordKPI
+orderApp -> eventBus : Publish(OrderPaid, OrderFulfilled)
+orderApp -> shippingModule : DispatchShipment
+shippingModule -> eventBus : Publish(ShipmentDispatched)
+eventBus -> inventoryModule : Consume(ShipmentDispatched)
+inventoryModule -> eventBus : Publish(InventoryAdjusted)
+orderApp -> analyticsModule : RecordKPI
 analyticsModule --> eventBus : MetricUpdated
-orderSaga --> orderApp : FulfillmentComplete
 orderApp --> orderController : OrderResponse
 orderController --> customer : 201 Created + Order summary
 

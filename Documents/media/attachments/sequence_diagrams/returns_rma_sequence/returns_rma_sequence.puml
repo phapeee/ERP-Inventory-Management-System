@@ -5,7 +5,7 @@ title RMA Creation → Inspection → Refund
 
 Participant_UI(csr, "CSR / Customer Portal")
 Participant_Controller(rmaController, "Returns API", "RmaController")
-Participant_App(rmaApp, "Rma App Service", "RmaApplicationService")
+Participant_App(rmaApp, "Rma Service (AKS)", "RmaApplicationService")
 Participant_Validator(rmaValidator, "RmaValidator")
 Participant_Aggregate(rmaAgg, "Rma Aggregate")
 Participant_Workflow(inspectionHandler, "Inspection Handler")

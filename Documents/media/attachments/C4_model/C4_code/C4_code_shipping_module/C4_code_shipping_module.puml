@@ -1,74 +1,51 @@
-@startuml PineConePro_ERPIMS_C4_ShippingModule
-!include ../C4_Code.puml
+@startuml C4_Code_Shipping_Module
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Container.puml
 
 LAYOUT_WITH_LEGEND()
 
-Boundary(shipApi, "API Layer") {
-  Code(shippingController, "ShippingController", "ASP.NET Core Controller", "Plan shipments, print labels, manage carrier settings.")
-  Code(hazmatController, "HazmatController", "ASP.NET Core Controller", "Upload SDS, validate hazmat packaging, run audits.")
+Container_Boundary(shippingModule, "Shipping & Hazmat Module") {
+
+    Container(shippingController, "ShippingController", "ASP.NET Core Controller", "Exposes RESTful endpoints for shipping operations (rate shopping, label generation, tracking).")
+
+    Container(shippingAppService, "ShippingApplicationService", "C# Class", "Orchestrates shipping use cases, handling application logic and transaction management.")
+
+    Container(shipmentAggregate, "ShipmentAggregate", "C# Class", "The root entity of the Shipment aggregate, encapsulating all business logic related to a shipment.")
+
+    Container(rateShoppingService, "RateShoppingService", "C# Class", "A domain service responsible for comparing carrier rates and selecting the best option.")
+
+    Container(hazmatValidationService, "HazmatValidationService", "C# Class", "A domain service for validating hazmat compliance for a shipment.")
+
+    Container(shippingRepository, "IShippingRepository", "C# Interface", "Defines the contract for persistence of the Shipment aggregate.")
+
+    Container(shippingRepositoryImpl, "ShippingRepository", "C# Class", "Implements the IShippingRepository interface using Entity Framework Core.")
+
+    Container(carrierAdapter, "ICarrierAdapter", "C# Interface", "Defines the contract for communicating with external shipping carriers.")
+
+    Container(carrierAdapterImpl, "CarrierAdapter", "C# Class", "Implements the ICarrierAdapter interface, integrating with a multi-carrier shipping API.")
+
+    Container(eventPublisher, "IEventPublisher", "C# Interface", "Defines the contract for publishing domain events.")
+
+    Container(eventPublisherImpl, "EventPublisher", "C# Class", "Implements the IEventPublisher interface, publishing events to the in-process event bus.")
+
 }
 
-Boundary(shipApp, "Application Layer") {
-  Code(shippingAppService, "ShippingApplicationService", "Service", "Orchestrates rate shopping, packing, dispatch workflows.")
-  Code(hazmatAppService, "HazmatApplicationService", "Service", "Enforces hazardous material rules, documentation.")
-  Code(rateShoppingHandler, "RateShoppingHandler", "Handler", "Evaluates carrier rates, transit times, account rules.")
-  Code(packWorkflow, "PackWorkflowHandler", "Workflow", "Guides cartonization, scan-to-pack, manifest generation.")
-  Code(dispatchWorkflow, "DispatchWorkflowHandler", "Workflow", "Confirms pickup, updates shipment state, notifies stakeholders.")
-  Code(shippingValidator, "ShippingValidator", "FluentValidation", "Validates ship-from, hazmat requirements, carrier constraints.")
-}
+System_Ext(user, "User", "Warehouse Associate, Operations Manager")
+System_Ext(orderModule, "Order Module", "Provides order information for shipping.")
+System_Ext(carrierApis, "Carrier APIs", "External APIs of shipping carriers (e.g., UPS, FedEx).")
+System_Ext(eventBus, "In-Process Event Bus", "The mechanism for inter-module communication.")
+System_Ext(database, "Database", "The underlying database for the ERP system.")
 
-Boundary(shipDomain, "Domain Layer") {
-  Code(shipmentAggregate, "ShipmentAggregate", "DDD Aggregate", "Tracks shipment lifecycle, parcels, tracking, compliance state.")
-  Code(packageEntity, "PackageEntity", "Entity", "Represents cartons, weight, dims, hazmat flags.")
-  Code(hazmatPolicy, "HazmatPolicy", "Domain Policy", "Checks DOT/IATA rules, packaging instructions, carrier eligibility.")
-  Code(rateRules, "CarrierRateRule", "Domain Policy", "Applies account-specific surcharges, service level preferences.")
-  Code(shippingEvents, "ShippingDomainEvents", "Event Definitions", "shipment-dispatched, label-generated, hazmat-doc-uploaded.")
-}
-
-Boundary(shipInfra, "Infrastructure & Integration") {
-  Code(shippingRepository, "ShippingRepository", "EF Core Repository", "Persists shipments, packages, hazmat records.")
-  Code(shippingProjector, "ShippingStatusProjector", "Projection", "Builds dashboards for SLA, exceptions, carrier KPIs.")
-  Code(labelGateway, "CarrierLabelGateway", "Adapter", "Abstracts carrier APIs for rate quotes, labels, pickups.")
-  Code(upsAdapter, "UpsAdapter", "Adapter", "Implements UPS REST/SOAP calls for rates, labels, hazmat forms.")
-  Code(fedexAdapter, "FedExAdapter", "Adapter", "Implements FedEx WebServices/REST.")
-  Code(uspsAdapter, "UspsAdapter", "Adapter", "Implements USPS API.")
-  Code(threePlAdapter, "ThreePlAdapter", "Adapter", "Sends drop-ship manifests, retrieves status.")
-  Code(notificationPublisher, "ShippingNotificationPublisher", "Integration Publisher", "Enqueues tracking notifications to queue/email.")
-  Code(trackingListener, "TrackingListener", "Background Worker", "Polls carrier APIs/webhooks for tracking updates.")
-  Code(hazmatDocStore, "HazmatDocumentStore", "Blob Client", "Stores SDS, manifests, hazardous documentation.")
-  Code(shippingEventPublisher, "ShippingEventPublisher", "Event Dispatcher", "Publishes shipping domain events to Service Bus.")
-  Code(shippingCache, "ShippingCache", "Redis Cache", "Caches rate quotes, packaging templates, label URLs.")
-  Code(paymentClient, "ShippingPaymentClient", "Adapter", "Charges freight fees when necessary.")
-}
-
-Rel(shippingController, shippingAppService, "Invokes")
-Rel(hazmatController, hazmatAppService, "Invokes")
-Rel(shippingAppService, shippingValidator, "Validates")
-Rel(shippingAppService, rateShoppingHandler, "Executes rate shopping")
-Rel(shippingAppService, packWorkflow, "Guides packing")
-Rel(shippingAppService, dispatchWorkflow, "Handles dispatch")
-Rel(hazmatAppService, hazmatPolicy, "Checks compliance")
-Rel(shippingAppService, shipmentAggregate, "Mutates aggregate")
-Rel(shipmentAggregate, packageEntity, "Composes")
-Rel(shipmentAggregate, shippingRepository, "Persist")
-Rel(shippingRepository, shippingProjector, "Trigger projection")
-Rel(shippingProjector, shippingCache, "Warm dashboards")
-Rel(rateShoppingHandler, rateRules, "Consults")
-Rel(rateShoppingHandler, labelGateway, "Request quotes")
-Rel(packWorkflow, labelGateway, "Request labels/manifests")
-Rel(dispatchWorkflow, trackingListener, "Subscribe for tracking")
-Rel(labelGateway, upsAdapter, "Route request")
-Rel(labelGateway, fedexAdapter, "Route request")
-Rel(labelGateway, uspsAdapter, "Route request")
-Rel(labelGateway, threePlAdapter, "Send manifest")
-Rel(hazmatAppService, hazmatDocStore, "Store docs")
-Rel(shipmentAggregate, shippingEvents, "Emit events")
-Rel(shippingEvents, shippingEventPublisher, "Dispatch")
-Rel(dispatchWorkflow, notificationPublisher, "Notify stakeholders")
-Rel(notificationPublisher, paymentClient, "Optional freight charge")
-Rel(trackingListener, shippingRepository, "Update status")
-Rel(trackingListener, notificationPublisher, "Push updates")
-Rel(shippingAppService, shippingCache, "Cache rates")
-Rel(packWorkflow, paymentClient, "Capture shipping fees (if COD)")
+Rel(user, shippingController, "Initiates shipping operations via UI", "HTTPS")
+Rel(shippingController, shippingAppService, "Forwards requests to", "C#")
+Rel(shippingAppService, shipmentAggregate, "Works with", "C#")
+Rel(shippingAppService, rateShoppingService, "Uses", "C#")
+Rel(shippingAppService, hazmatValidationService, "Uses", "C#")
+Rel(shippingAppService, shippingRepository, "Uses", "C#")
+Rel(shippingAppService, carrierAdapter, "Uses", "C#")
+Rel(shippingAppService, eventPublisher, "Uses", "C#")
+Rel(shippingRepositoryImpl, database, "Reads/writes", "SQL")
+Rel(carrierAdapterImpl, carrierApis, "Calls", "HTTPS/JSON")
+Rel(eventPublisherImpl, eventBus, "Publishes to", "C#")
+Rel(shippingAppService, orderModule, "Subscribes to OrderReadyForShipping event from", "via Event Bus")
 
 @enduml

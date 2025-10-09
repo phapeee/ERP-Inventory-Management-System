@@ -1,0 +1,61 @@
+@startuml PineConePro_ERPIMS_C4_AccountingSyncModule
+!include ../C4_Code.puml
+
+LAYOUT_WITH_LEGEND()
+
+Boundary(api, "API Layer") {
+  Code(accountingController, "AccountingController", "ASP.NET Core Controller", "Endpoints for managing mappings, viewing sync status, and triggering manual jobs.")
+}
+
+Boundary(app, "Application Layer") {
+  Code(accountingAppService, "AccountingSyncAppService", "Service", "Orchestrates the synchronization and reconciliation workflows.")
+  Code(operationalEventHandler, "OperationalEventHandler", "Event Subscriber", "Subscribes to events like OrderShipped to trigger journal creation.")
+  Code(mappingValidator, "LedgerMappingValidator", "FluentValidation", "Ensures GL mapping rules are valid and complete.")
+  Code(reconciliationService, "ReconciliationAppService", "Service", "Compares ERP data with accounting system balances and flags discrepancies.")
+}
+
+Boundary(domain, "Domain Layer") {
+  Code(journalEntry, "JournalEntryAggregate", "DDD Aggregate", "Represents a balanced journal entry with debits/credits, status, and audit trail.")
+  Code(ledgerMapping, "LedgerMappingPolicy", "Domain Policy", "Contains the business rules for mapping operational transactions to GL accounts.")
+  Code(accountingEvents, "AccountingDomainEvents", "Event Definitions", "Defines events like 'journal-entry-created' and 'reconciliation-failed'.")
+}
+
+Boundary(infra, "Infrastructure & Integration") {
+  Code(accountingRepository, "AccountingRepository", "EF Core Repository", "Persists JournalEntry aggregates and LedgerMapping configurations.")
+  Code(accountingReadProjector, "AccountingReadModelProjector", "Projection", "Builds and maintains materialized views for sync status dashboards.")
+  Code(accountingSystemAdapter, "ExternalAccountingSystemAdapter", "Adapter", "Client for the external accounting system's API (e.g., QuickBooks, NetSuite).")
+  Code(syncJobScheduler, "SyncJobScheduler", "Background Service", "Schedules and executes recurring batch synchronization and reconciliation jobs.")
+  Code(accountingEventPublisher, "AccountingEventPublisher", "Event Publisher", "Publishes accounting-related domain events to the in-process bus.")
+  Code(auditLogger, "AuditLogger", "Logger", "Records a detailed, immutable audit trail for all sync and reconciliation activities.")
+}
+
+' Event-Driven Flow: Journal Creation
+Rel(operationalEventHandler, accountingAppService, "Triggers journal creation for an operational event")
+Rel(accountingAppService, ledgerMapping, "Uses policy to determine correct GL accounts")
+Rel(accountingAppService, journalEntry, "Creates a new JournalEntry aggregate")
+Rel(journalEntry, accountingRepository, "Is persisted by")
+Rel(journalEntry, accountingEvents, "Raises 'journal-entry-created' event")
+
+' Scheduled Job Flow: Batch Synchronization
+Rel(syncJobScheduler, accountingAppService, "Triggers a scheduled batch sync")
+Rel(accountingAppService, accountingRepository, "Fetches unposted journal entries")
+Rel(accountingAppService, accountingSystemAdapter, "Posts journal entries to the external system")
+Rel(accountingAppService, auditLogger, "Records the outcome of the sync job")
+
+' Manual/Scheduled Flow: Reconciliation
+Rel(accountingController, reconciliationService, "Triggers a manual reconciliation")
+Rel(syncJobScheduler, reconciliationService, "Triggers a scheduled reconciliation")
+Rel(reconciliationService, accountingRepository, "Gets internal ERP balances")
+Rel(reconciliationService, accountingSystemAdapter, "Fetches external account balances")
+Rel(reconciliationService, accountingReadProjector, "Updates the reconciliation status dashboard")
+
+' User-Driven Flow: Configuration
+Rel(accountingController, accountingAppService, "Manages ledger mappings")
+Rel(accountingAppService, mappingValidator, "Validates new or updated mappings")
+Rel(accountingAppService, accountingRepository, "Persists mapping configuration")
+
+' General Infrastructure Links
+Rel(accountingEvents, accountingEventPublisher, "Are dispatched by")
+Rel(accountingAppService, auditLogger, "Records all significant actions for compliance")
+
+@enduml

@@ -5,9 +5,9 @@ title Replenishment Recommendation to PO Placement
 
 Participant_Scheduler(forecastScheduler, "Forecast Scheduler")
 Participant_Module(forecastModule, "Forecasting Module")
-Participant_App(purchasingApp, "Purchasing App Service")
+Participant_App(purchasingApp, "Purchasing Service (AKS)")
 Participant_Controller(purchasingController, "Purchasing API")
-Participant_App(inventoryApp, "Inventory App Service")
+Participant_App(inventoryApp, "Inventory Service (AKS)")
 Participant_Policy(purchPolicy, "Purchasing Policy")
 Participant_Aggregate(poAggregate, "PurchaseOrder Aggregate")
 Participant_Adapter(vendorAdapter, "Vendor EDI Adapter")

@@ -21,7 +21,7 @@ Container_Boundary(mfgBoundary, "Light Manufacturing & Kitting Module") {
   Component(laborCaptureClient, "LaborCaptureClient", "Adapter", "Collects labor data from time tracking devices")
 }
 
-ContainerDb(sqlDb, "Operational Database", "Azure SQL", "Manufacturing schema")
+ContainerDb(sqlDb, "Operational Database", "Azure Database for PostgreSQL", "Manufacturing schema")
 Container(queue, "Azure Service Bus", "Topics/Queues", "Manufacturing events")
 System_Ext(orderModule, "Order Module", "Provides demand signals for kits")
 System_Ext(inventoryModule, "Inventory Module", "Consumes component usage, updates finished goods")

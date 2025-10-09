@@ -4,10 +4,11 @@
 title Inventory Module – Cycle Count Workflow
 
 Participant_Scheduler(cycleScheduler, "Cycle Count Scheduler")
-Participant_App(invApp, "Inventory App Service")
+Participant_App(invApp, "Inventory Service (AKS)")
 Participant_TaskRepo(taskRepo, "Inventory Task Repository")
 Participant_RFDevice(rfDevice, "RF Device / Associate")
 Participant_Aggregate(invAgg, "Inventory Item Aggregate")
+Participant_Component(atpCalculator, "ATP Calculator")
 Participant_EventBus(eventBus, "Service Bus")
 Participant_Analytics(analyticsModule, "Analytics Module")
 Participant_Purchasing(purchModule, "Purchasing Module")
@@ -20,6 +21,8 @@ invApp -> rfDevice : PushTask(taskId)
 rfDevice -> invApp : SubmitCount(taskId, quantity)
 invApp -> invAgg : Apply(CycleCountMeasured)
 invAgg --> invApp : Events(item-adjusted?)
+invAgg -> atpCalculator : UpdateATP()
+atpCalculator --> invAgg : ATP_Updated
 invApp -> taskRepo : CompleteTask(taskId)
 invApp -> eventBus : Publish(CycleCountCompleted)
 invApp -> analyticsModule : RecordAccuracy(bin, variance)

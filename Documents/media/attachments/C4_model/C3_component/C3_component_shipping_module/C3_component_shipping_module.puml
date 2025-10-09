@@ -1,0 +1,85 @@
+@startuml PineConePro_ERPIMS_C3_ShippingModule
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+' Actors
+Person(warehouseAssoc, "Warehouse Associate", "Runs pack/ship station, prints labels")
+Person(opsManager, "Operations Manager", "Monitors carrier performance, hazmat compliance")
+
+' System Boundary
+Container_Boundary(shipBoundary, "Shipping & Hazmat Module") {
+  Component(shippingController, "ShippingController", "ASP.NET Core", "REST endpoints for shipment planning, label purchase, hazmat validation")
+  Component(shippingAppService, "ShippingApplicationService", "Application Layer", "Coordinates rate shopping, address validation, and dispatch workflows")
+  Component(shippingEventHandler, "ShippingEventHandler", "Event Subscriber", "Subscribes to events like orders.order-allocated to begin the shipping process")
+
+  Component(shipmentAggregate, "Shipment Aggregate", "Domain Model", "Tracks shipment state, carrier selection, tracking numbers, and hazmat documentation")
+  
+  Component(rateShopper, "RateShopping Engine", "Domain Service", "Evaluates carrier options, service levels, and costs based on business rules")
+  Component(addressValidator, "AddressValidationService", "Domain Service", "Validates shipping addresses using carrier APIs to prevent misdeliveries")
+  Component(hazmatValidator, "Hazmat Compliance Validator", "Domain Policy", "Validates hazardous classification, packaging, and documentation before shipment")
+  Component(packingWorkflow, "Pack & Scan Workflow", "Domain Service", "Guides cartonization and scan-to-pack processes")
+  Component(manifestExporter, "Manifest & Docs Exporter", "Document Generator", "Produces hazmat, customs, and end-of-day manifests")
+
+  Component(shippingRepository, "ShippingRepository", "EF Core Repository", "Persists shipment and hazmat document records")
+  Component(shippingReadModel, "ShippingReadModel", "CQRS Read Store", "Provides dashboard views for SLA tracking and exceptions")
+  
+  Component(eventPublisher, "ShippingEventPublisher", "Event Dispatcher", "Publishes events like shipping.shipment-created and shipping.shipment-delivered")
+  Component(carrierAdapter, "CarrierAdapter", "Adapter", "Connects to external multi-carrier APIs for rates, labels, address validation, and tracking")
+  Component(analyticsEmitter, "ShippingMetricsEmitter", "Telemetry", "Reports on SLA adherence, cost, and carrier performance")
+}
+
+' External Dependencies
+ContainerDb(sqlDb, "Operational Database", "Azure Database for PostgreSQL", "Shipping & hazmat schemas")
+Container(blob, "Document Store", "Azure Blob Storage", "Stores generated labels, hazmat SDS, and manifests")
+Container(bus, "In-Process Event Bus", "MediatR / Rebus", "Handles communication with other internal modules")
+System_Ext(orderModule, "Order Module", "Publishes shipment requests, consumes tracking updates")
+System_Ext(productModule, "Product Module", "Provides hazmat codes, dimensions, and packaging info via read model")
+System_Ext(carriers, "Carrier APIs", "Provides rates, labels, tracking, and address validation")
+System_Ext(threePL, "3PL Provider", "Handles drop-ship & cross-dock fulfillment")
+System_Ext(observability, "Observability Stack", "Logs, metrics, alerts")
+
+' Relationships
+
+' Actors -> System
+Rel(warehouseAssoc, shippingController, "Plan shipments, print labels")
+Rel(opsManager, shippingController, "Monitor exceptions, configure carriers")
+
+' Controller -> Application Service
+Rel(shippingController, shippingAppService, "Execute workflow")
+
+' Event Handler -> Application Service
+Rel(shippingEventHandler, bus, "Subscribes to events (e.g., from Order Module)")
+Rel(shippingEventHandler, shippingAppService, "Initiate shipping process")
+
+' Application Service -> Domain & Adapters
+Rel(shippingAppService, addressValidator, "Validate address")
+Rel(shippingAppService, rateShopper, "Request cost/service comparisons")
+Rel(shippingAppService, hazmatValidator, "Validate hazmat requirements")
+Rel(shippingAppService, packingWorkflow, "Guide packing steps")
+Rel(shippingAppService, shipmentAggregate, "Update shipment state")
+Rel(shippingAppService, manifestExporter, "Generate required documents")
+Rel(shippingAppService, carrierAdapter, "Get rates, buy labels, track")
+
+' Internal Services -> Adapters / Persistence
+Rel(addressValidator, carrierAdapter, "Call external validation API")
+Rel(rateShopper, carrierAdapter, "Call external rate API")
+Rel(manifestExporter, blob, "Archive manifests, hazmat docs")
+Rel(shipmentAggregate, shippingRepository, "Persist state")
+Rel(shippingRepository, sqlDb, "Read/write data")
+Rel(shippingReadModel, sqlDb, "Read projections")
+
+' Adapter -> External Systems
+Rel(carrierAdapter, carriers, "REST/SOAP to Carrier APIs")
+Rel(carrierAdapter, threePL, "Send drop-ship instructions")
+
+' Events & Telemetry
+Rel(shipmentAggregate, eventPublisher, "Emit domain events")
+Rel(eventPublisher, bus, "Publish events (e.g., shipping.shipment-created)")
+Rel(analyticsEmitter, observability, "Publish metrics")
+Rel(shippingAppService, analyticsEmitter, "Send SLA, cost metrics")
+
+' Data consumed from other modules is via their read models or included in the triggering event
+Rel(shippingAppService, productModule, "Read product data (dimensions, hazmat flags)")
+
+@enduml

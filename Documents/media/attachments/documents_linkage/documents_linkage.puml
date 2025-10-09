@@ -1,0 +1,86 @@
+@startuml
+!theme vibrant
+
+title ERP-Inventory-Management-System Documents Linkage
+
+package "00-Generic Features" {
+  [erp_system_features]
+}
+
+package "01-Business Context" {
+  [business_scenario]
+}
+
+package "02-Product & Requirements" {
+  [primary_feature]
+  [product_requirements_mvp_phase2]
+  [acceptance_criteria_key_features]
+  [non_functional_requirements]
+  [rbac_matrix_permissions]
+}
+
+package "03-Architecture" {
+  [system_architecture_overview]
+  [architecture_decision_records]
+  [C4_model]
+  [conceptual_models]
+  [data_model_erd]
+  [event_storming]
+  [security_requirements_and_threat_model]
+  [sequence_diagrams]
+}
+
+package "04-Interfaces & Integrations" {
+  [api_specifications_and_endpoint_inventory]
+  [event_schemas_and_message_contracts]
+  [integration_contracts_and_sla]
+}
+
+package "05-Implementation" {
+  [module_specifications]
+  [environments_configuration_matrix]
+}
+
+package "06-Delivery & Quality" {
+  [ci_cd_pipeline_release_rollback_plan]
+  [test_strategy]
+}
+
+package "07-Operations" {
+  [observability_and_alert_catalog]
+  [observability_implementation_checklist]
+}
+
+' Relationships
+
+[business_scenario] ..> [primary_feature] : "Defines needs for"
+[erp_system_features] ..> [primary_feature] : "Provides capabilities for"
+[primary_feature] ..> [product_requirements_mvp_phase2] : "Informs"
+
+[product_requirements_mvp_phase2] ..> [acceptance_criteria_key_features] : "Defines criteria for"
+[product_requirements_mvp_phase2] ..> [non_functional_requirements] : "Defines"
+[product_requirements_mvp_phase2] ..> [rbac_matrix_permissions] : "Defines roles for"
+
+[product_requirements_mvp_phase2] ..> [system_architecture_overview] : "Is implemented by"
+[system_architecture_overview] ..> [architecture_decision_records] : "Is based on"
+[system_architecture_overview] ..> [C4_model] : "Is detailed in"
+[system_architecture_overview] ..> [conceptual_models] : "Is based on"
+[conceptual_models] ..> [data_model_erd] : "Is detailed in"
+[system_architecture_overview] ..> [event_storming] : "Is based on"
+[system_architecture_overview] ..> [security_requirements_and_threat_model] : "Is constrained by"
+[system_architecture_overview] ..> [sequence_diagrams] : "Is illustrated by"
+
+[system_architecture_overview] ..> [api_specifications_and_endpoint_inventory] : "Defines"
+[system_architecture_overview] ..> [event_schemas_and_message_contracts] : "Defines"
+[system_architecture_overview] ..> [integration_contracts_and_sla] : "Defines"
+
+[system_architecture_overview] ..> [module_specifications] : "Is implemented by"
+[module_specifications] ..> [environments_configuration_matrix] : "Is deployed to"
+
+[module_specifications] ..> [ci_cd_pipeline_release_rollback_plan] : "Is deployed by"
+[module_specifications] ..> [test_strategy] : "Is tested by"
+
+[ci_cd_pipeline_release_rollback_plan] ..> [observability_and_alert_catalog] : "Is monitored by"
+[observability_and_alert_catalog] ..> [observability_implementation_checklist] : "Is implemented by"
+
+@enduml

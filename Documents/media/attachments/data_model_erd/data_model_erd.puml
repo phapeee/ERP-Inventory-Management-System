@@ -1,0 +1,194 @@
+@startuml PineCone Pro ERP/IMS — Data Model
+!theme vibrant
+title PineCone Pro ERP/IMS — Data Model
+
+skinparam linetype ortho
+
+entity "Product" as Product {
+  + ProductID [PK]
+  --
+  SKU
+  Name
+  Description
+  CategoryID [FK]
+}
+
+entity "ProductCategory" as ProductCategory {
+  + CategoryID [PK]
+  --
+  Name
+  ParentID [FK]
+}
+
+entity "KitBundle" as KitBundle {
+  + KitBundleID [PK]
+  --
+  KitProductID [FK]
+  ComponentProductID [FK]
+  Quantity
+}
+
+entity "Vendor" as Vendor {
+  + VendorID [PK]
+  --
+  Name
+  Address
+}
+
+entity "Customer" as Customer {
+  + CustomerID [PK]
+  --
+  Name
+  Address
+}
+
+entity "PurchaseOrder" as PurchaseOrder {
+  + PurchaseOrderID [PK]
+  --
+  VendorID [FK]
+  OrderDate
+  Status
+  CreatedBy [FK]
+}
+
+entity "PurchaseOrderLine" as PurchaseOrderLine {
+  + PurchaseOrderLineID [PK]
+  --
+  PurchaseOrderID [FK]
+  ProductID [FK]
+  QuantityOrdered
+  UnitPrice
+}
+
+entity "Warehouse" as Warehouse {
+  + LocationID [PK]
+  --
+  Name
+  Address
+}
+
+entity "InventoryItem" as InventoryItem {
+  + InventoryItemID [PK]
+  --
+  LocationID [FK]
+  ProductID [FK]
+  QuantityOnHand
+  QuantityReserved
+}
+
+entity "Lot" as Lot {
+  + LotID [PK]
+  --
+  ProductID [FK]
+  LotNumber
+  ExpirationDate
+}
+
+entity "Serial" as Serial {
+  + SerialID [PK]
+  --
+  ProductID [FK]
+  SerialNumber
+}
+
+entity "Order" as Order {
+  + OrderID [PK]
+  --
+  CustomerID [FK]
+  OrderDate
+  Status
+  CreatedBy [FK]
+}
+
+entity "OrderLine" as OrderLine {
+  + OrderLineID [PK]
+  --
+  OrderID [FK]
+  ProductID [FK]
+  Quantity
+  UnitPrice
+}
+
+entity "Shipment" as Shipment {
+  + ShipmentID [PK]
+  --
+  OrderID [FK]
+  LocationID [FK]
+  CarrierID [FK]
+  TrackingNumber
+}
+
+entity "Carrier" as Carrier {
+    + CarrierID [PK]
+    --
+    Name
+}
+
+entity "Payment" as Payment {
+    + PaymentID [PK]
+    --
+    OrderID [FK]
+    Amount
+    PaymentMethod
+    Status
+}
+
+entity "RMA" as RMA {
+  + RMAID [PK]
+  --
+  OrderID [FK]
+  CustomerID [FK]
+  ReasonCode
+}
+
+entity "TaxRate" as TaxRate {
+  + TaxRateID [PK]
+  --
+  State
+  County
+  Rate
+}
+
+entity "AccountEntry" as AccountEntry {
+  + EntryID [PK]
+  --
+  AccountNumber
+  Debit
+  Credit
+}
+
+entity "User" as User {
+  + UserID [PK]
+  --
+  Username
+  PasswordHash
+  RoleID [FK]
+}
+
+entity "Role" as Role {
+  + RoleID [PK]
+  --
+  Name
+}
+
+ProductCategory "1" -- "many" Product
+Product "1" -- "many" KitBundle
+Vendor "1" -- "many" PurchaseOrder
+Customer "1" -- "many" Order
+Customer "1" -- "many" RMA
+PurchaseOrder "1" -- "many" PurchaseOrderLine
+PurchaseOrderLine "1" -- "1" Product
+Warehouse "1" -- "many" InventoryItem
+Product "1" -- "many" InventoryItem
+Order "1" -- "many" OrderLine
+Order "1" -- "many" Shipment
+Order "1" -- "many" Payment
+OrderLine "1" -- "1" Product
+Shipment "1" -- "1" Carrier
+RMA "1" -- "1" Order
+Lot "1" -- "1" InventoryItem
+Serial "1" -- "1" InventoryItem
+User "1" -- "many" PurchaseOrder
+User "1" -- "many" Order
+Role "1" -- "many" User
+@enduml

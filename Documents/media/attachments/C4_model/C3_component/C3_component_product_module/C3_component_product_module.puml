@@ -1,0 +1,73 @@
+@startuml PineConePro_ERPIMS_C3_ProductModule
+!include https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+
+Person(ecomManager, "E-Commerce Manager", "Maintains catalog, pricing, channel sync, and handles governance workflows")
+
+Container_Boundary(pimBoundary, "Product Information Management Module") {
+  Component(prodController, "ProductController", "ASP.NET Core", "REST endpoints for product CRUD, kit maintenance, approvals")
+  Component(prodAppService, "ProductApplicationService", "Application layer", "Coordinates validation, workflows, approvals, publishing")
+  Component(prodValidator, "ProductValidator", "FluentValidation", "Ensures required attributes, hazardous data, unit conversions")
+  Component(prodPolicy, "GovernancePolicy Engine", "Rules engine", "Approval routing, versioning rules, RBAC enforcement")
+  Component(pricingService, "PricingService", "Domain service", "Manages price lists, tiers, currency conversion")
+  Component(prodAggregate, "Product Aggregate", "Domain model", "SKU lifecycle, revisions, hazardous metadata, channel flags")
+  Component(kitAggregate, "Kit/BOM Aggregate", "Domain model", "Maintains kit components & BOM, calculates kit availability")
+  Component(attributeService, "AttributeCatalog Service", "Domain service", "Manages extensible attributes, UOM conversions, translations")
+  Component(prodRepository, "ProductRepository", "EF Core repository", "Persists product, attribute, kit aggregates")
+  Component(prodReadModel, "CatalogReadModel", "CQRS read store", "Search-optimised projections for UI & downstream consumers")
+  Component(channelOrchestrator, "ChannelSync Orchestrator", "Workflow service", "Schedules and tracks outbound syndication jobs")
+  Component(channelAdapters, "Channel Connector Facades", "Adapters", "Transforms payloads for Web Store, Amazon, POS, B2B portal")
+  Component(hazmatPolicy, "Hazmat Compliance Service", "Domain policy", "Validates UN/NA numbers, packaging, shipping restrictions")
+  Component(assetManager, "DigitalAsset Manager", "Storage client", "Handles images, SDS documents, versioned assets")
+  Component(eventPublisher, "ProductEventPublisher", "Event dispatcher", "Emits product-created/updated, price-changed, hazmat-updated for in-process and external consumers")
+  Component(prodAuditLogger, "AuditLogger", "Telemetry", "Records change history, approvals, data lineage")
+}
+
+ContainerDb(sqlDb, "Operational Database", "Azure Database for PostgreSQL", "Product & attribute schemas")
+Container(cache, "Redis Cache", "Azure Cache for Redis", "Hot catalog, attribute cache")
+Container(blob, "Asset Store", "Azure Blob Storage", "Images, SDS, marketing assets")
+Container(queue, "External Message Broker", "Azure Service Bus", "Integration events for external systems")
+System_Ext(salesChannels, "Sales Channels", "Web store, Amazon, POS, B2B portal")
+System_Ext(inventoryModule, "Inventory Module", "Consumes product setup, units, kits via in-process events")
+System_Ext(orderModule, "Order & Pricing Module", "Needs product data for order validation via in-process events")
+System_Ext(taxModule, "Tax & Accounting Module", "Requires tax codes, categories via in-process events")
+System_Ext(shippingModule, "Shipping & Hazmat Module", "Consumes hazardous metadata via in-process events")
+System_Ext(vendorSystems, "Vendor Item Feeds", "Suppliers providing catalogs")
+System_Ext(observability, "Observability Stack", "Logs, metrics, traces")
+
+Rel(ecomManager, prodController, "Create/update products, schedule syncs, manage governance")
+
+Rel(prodController, prodAppService, "Invoke application workflows")
+Rel(prodAppService, prodValidator, "Validate business rules")
+Rel(prodAppService, prodPolicy, "Determine approvals, effective dates")
+Rel(prodAppService, pricingService, "Manage product pricing")
+Rel(prodAppService, hazmatPolicy, "Run hazardous compliance checks")
+Rel(prodAppService, attributeService, "Resolve attribute templates, UOM conversions")
+Rel(prodAppService, prodAggregate, "Execute domain commands")
+Rel(prodAppService, kitAggregate, "Maintain kit BOMs")
+Rel(prodAggregate, prodRepository, "Persist aggregate")
+Rel(kitAggregate, prodRepository, "Persist kit changes")
+Rel(prodRepository, sqlDb, "Save/load entities")
+Rel(prodReadModel, sqlDb, "Read projections")
+Rel(prodAppService, prodReadModel, "Query catalog views")
+Rel(prodAppService, cache, "Cache hot catalog data")
+Rel(attributeService, cache, "Cache attribute dictionaries")
+Rel(assetManager, blob, "Store/retrieve assets")
+Rel(prodAppService, assetManager, "Attach images, SDS")
+Rel(prodAppService, channelOrchestrator, "Schedule publishing jobs")
+Rel(channelOrchestrator, channelAdapters, "Invoke channel-specific transforms")
+Rel(channelAdapters, salesChannels, "Push SKU updates, pricing, availability")
+Rel(channelOrchestrator, queue, "Publish async sync commands")
+Rel(eventPublisher, queue, "Publish integration events")
+Rel(prodAggregate, eventPublisher, "Emit domain events")
+Rel(kitAggregate, eventPublisher, "Emit kit events")
+Rel(prodPolicy, prodAuditLogger, "Record approvals, overrides")
+Rel(prodAppService, prodAuditLogger, "Write change logs")
+Rel(prodAuditLogger, observability, "Forward audit trail, metrics")
+
+Rel(queue, salesChannels, "Asynchronous export jobs")
+Rel(vendorSystems, channelOrchestrator, "Inbound catalog feeds")
+Rel(prodAppService, vendorSystems, "Request latest vendor specs")
+
+@enduml

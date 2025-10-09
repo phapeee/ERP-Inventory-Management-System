@@ -1,73 +1,94 @@
-@startuml PineConePro_ERPIMS_C4_ProductModule
+@startuml PineConePro_ERPIMS_C4_ProductModule_Clean
 !include ../C4_Code.puml
 
 LAYOUT_WITH_LEGEND()
 
-Boundary(productApi, "API Layer") {
-  Code(productController, "ProductController", "ASP.NET Core Controller", "CRUD endpoints for SKUs, attributes, approvals, kit maintenance.")
-  Code(channelController, "ChannelSyncController", "ASP.NET Core Controller", "Schedules channel syndication jobs, status reporting.")
+' External Systems
+System_Ext(browser, "Browser", "Angular SPA")
+System_Ext(database, "Database", "PostgreSQL")
+System_Ext(bus, "In-Process Event Bus", "MediatR/Rebus")
+System_Ext(blobStorage, "Blob Storage", "Azure Blob Storage")
+
+' Clean Architecture Layers
+
+Boundary(presentation, "Presentation Layer") {
+    Code(productController, "ProductController", "ASP.NET Core Controller", "Receives HTTP requests and invokes the application service.")
 }
 
-Boundary(productApp, "Application Layer") {
-  Code(productAppService, "ProductApplicationService", "Service", "Coordinates product workflows, validations, approvals, publishing.")
-  Code(kitAppService, "KitApplicationService", "Service", "Manages kit BOM versions and inventory implications.")
-  Code(productValidator, "ProductValidator", "FluentValidation", "Ensures required attributes, hazard data, unit conversions.")
-  Code(kitValidator, "KitValidator", "FluentValidation", "Verifies component validity, effective dates, circular references.")
-  Code(productApprovalFlow, "ProductApprovalWorkflow", "Process Manager", "Routes approvals to Ops/E-Com, tracks status.")
-  Code(channelScheduler, "ChannelSyncScheduler", "Workflow", "Enqueues outbound sync jobs, delta exports.")
+Boundary(application, "Application Layer") {
+    ' Application Service
+    Code(productAppService, "ProductApplicationService", "Service", "Implements IProductApplicationService. Orchestrates the use case, calling domain and repository interfaces.")
+    
+    ' Interfaces (Ports)
+    Interface(iProductAppService, "IProductApplicationService", "C# Interface", "Defines the contract for product use cases (e.g., CreateProduct).")
+    Interface(iProductRepository, "IProductRepository", "C# Interface", "Defines the contract for persisting and retrieving Product aggregates.")
+    Interface(iEventPublisher, "IEventPublisher", "C# Interface", "Defines the contract for dispatching domain events.")
+    Interface(iAssetStorage, "IAssetStorage", "C# Interface", "Defines the contract for storing file assets.")
+
+    ' Event Handlers
+    Code(productCreatedHandler, "ProductCreatedEventHandler", "Handler", "Listens for ProductCreated events to trigger side effects like updating read models.")
 }
 
-Boundary(productDomain, "Domain Layer") {
-  Code(productAggregate, "ProductAggregate", "DDD Aggregate", "Maintains SKU master data, lifecycle state, hazards, pricing metadata.")
-  Code(kitAggregate, "KitAggregate", "DDD Aggregate", "Represents bundled SKUs, component ratios, effectivity windows.")
-  Code(attributeModel, "AttributeModel", "Value Object", "Extensible attributes, translations, units-of-measure conversions.")
-  Code(hazmatRules, "HazmatRules", "Domain Policy", "Validates DOT/IATA compliance, packaging.")
-  Code(channelPolicy, "ChannelEligibilityPolicy", "Domain Policy", "Determines channel availability based on attributes, compliance.")
-  Code(productEvents, "ProductDomainEvents", "Event Definitions", "product-created/updated, price-changed, hazmat-updated.")
+Boundary(domain, "Domain Layer") {
+    ' Aggregates & Entities
+    Code(productAggregate, "Product", "DDD Aggregate Root", "Encapsulates product state and business rules. Raises domain events.")
+    Code(kitEntity, "KitComponent", "DDD Entity", "A component within the Product aggregate for kits/bundles.")
+    
+    ' Value Objects
+    Code(priceVO, "Price", "Value Object", "Represents product price.")
+    Code(dimensionsVO, "Dimensions", "Value Object", "Represents product dimensions and weight.")
+
+    ' Domain Services & Policies
+    Code(hazmatPolicy, "HazmatCompliancePolicy", "Domain Policy", "Contains rules for validating hazardous material compliance.")
+
+    ' Domain Events
+    Code(productCreatedEvent, "ProductCreated", "Domain Event", "Represents the fact that a new product was created.")
 }
 
-Boundary(productInfra, "Infrastructure & Integration") {
-  Code(productRepository, "ProductRepository", "EF Core Repository", "Persists products, attributes, kits with schema-per-module.")
-  Code(productReadProjector, "CatalogReadProjector", "Projection Handler", "Builds denormalized catalog views for SPA/search.")
-  Code(channelAdapterFactory, "ChannelAdapterFactory", "Factory", "Resolves channel-specific connector implementations.")
-  Code(webStoreAdapter, "WebStoreConnector", "Adapter", "Publishes catalog/pricing feeds to web storefront.")
-  Code(amazonAdapter, "AmazonConnector", "Adapter", "Handles Amazon MWS/SP-API interactions.")
-  Code(posAdapter, "PosConnector", "Adapter", "Syncs catalog to in-store POS.")
-  Code(b2bAdapter, "B2BPortalConnector", "Adapter", "Publishes catalog to B2B portal APIs.")
-  Code(vendorFeedParser, "VendorFeedParser", "Integration", "Imports vendor catalog files (CSV/XML/EDI).")
-  Code(assetStorageClient, "AssetStorageClient", "Blob Client", "Stores images, SDS docs, marketing assets.")
-  Code(productEventPublisher, "ProductEventPublisher", "Event Dispatcher", "Publishes product domain events to message bus.")
-  Code(productCache, "ProductCache", "Redis Cache", "Caches hot catalog entries, attribute dictionaries.")
+Boundary(infrastructure, "Infrastructure Layer") {
+    ' Repository Implementation (Adapter)
+    Code(productRepository, "ProductRepository", "EF Core Implementation", "Implements IProductRepository. Handles data access to the PostgreSQL database.")
+    
+    ' Event Publisher Implementation (Adapter)
+    Code(eventPublisher, "EventPublisher", "MediatR Publisher", "Implements IEventPublisher. Dispatches events to the in-process event bus.")
+
+    ' Asset Storage Implementation (Adapter)
+    Code(assetStorage, "AssetStorageClient", "Azure SDK Client", "Implements IAssetStorage. Interacts with Azure Blob Storage.")
+
+    ' Read Model Projector
+    Code(catalogProjector, "CatalogReadProjector", "Projection Handler", "Builds and updates a denormalized read model for fast queries.")
 }
 
-Rel(productController, productAppService, "Invokes")
-Rel(channelController, channelScheduler, "Schedules jobs")
-Rel(productAppService, productValidator, "Validates")
-Rel(kitAppService, kitValidator, "Validates")
-Rel(productAppService, productAggregate, "Mutates aggregate")
-Rel(kitAppService, kitAggregate, "Mutates aggregate")
-Rel(productAppService, attributeModel, "Constructs value objects")
-Rel(productAppService, hazmatRules, "Checks compliance")
-Rel(productAppService, channelPolicy, "Determines channel eligibility")
-Rel(productApprovalFlow, productAggregate, "Updates approval state")
-Rel(productAggregate, productRepository, "Persist")
-Rel(kitAggregate, productRepository, "Persist")
-Rel(productRepository, productCache, "Update cache")
-Rel(productRepository, productReadProjector, "Trigger projection")
-Rel(productReadProjector, productCache, "Warm cache")
-Rel(productReadProjector, channelScheduler, "Publish deltas")
-Rel(channelScheduler, channelAdapterFactory, "Resolve connector")
-Rel(channelAdapterFactory, webStoreAdapter, "Instantiate")
-Rel(channelAdapterFactory, amazonAdapter, "Instantiate")
-Rel(channelAdapterFactory, posAdapter, "Instantiate")
-Rel(channelAdapterFactory, b2bAdapter, "Instantiate")
-Rel(webStoreAdapter, assetStorageClient, "Fetch assets")
-Rel(amazonAdapter, assetStorageClient, "Fetch assets")
-Rel(vendorFeedParser, productAppService, "Import definitions")
-Rel(productAggregate, productEvents, "Emits")
-Rel(productEvents, productEventPublisher, "Dispatch")
-Rel(productAppService, assetStorageClient, "Upload assets")
-Rel(productCache, productController, "Serve quick reads")
-Rel(productApprovalFlow, productEventPublisher, "Signal approval state")
+
+' === Relationships ===
+
+' --- Primary Use Case Flow (e.g., Create Product) ---
+Rel(browser, productController, "1. POST /api/v1/products", "HTTPS")
+Rel(productController, iProductAppService, "2. Calls CreateProduct(dto)")
+Rel_Back(productAppService, iProductAppService, "Implements")
+
+Rel(productAppService, productAggregate, "3. Creates Aggregate instance")
+Rel(productAggregate, hazmatPolicy, "4. Uses policy to validate data")
+Rel(productAggregate, productCreatedEvent, "5. Raises ProductCreated event")
+Rel(productAppService, iProductRepository, "6. Calls Add(product)")
+Rel(productAppService, iEventPublisher, "7. Calls Dispatch(events)")
+
+
+' --- Dependency Inversion (Application -> Infrastructure) ---
+Rel_Back(productRepository, iProductRepository, "Implements")
+Rel_Back(eventPublisher, iEventPublisher, "Implements")
+Rel_Back(assetStorage, iAssetStorage, "Implements")
+
+
+' --- Infrastructure Implementation Details ---
+Rel(productRepository, database, "Reads/writes using EF Core", "SQL")
+Rel(eventPublisher, bus, "Publishes to bus", "In-Process")
+Rel(assetStorage, blobStorage, "Uploads/downloads files", "HTTPS")
+
+
+' --- Event Handling / CQRS Flow ---
+Rel(bus, productCreatedHandler, "Dispatches event to handler")
+Rel(productCreatedHandler, catalogProjector, "Invokes projector")
+Rel(catalogProjector, database, "Writes to denormalized read model", "SQL")
 
 @enduml
