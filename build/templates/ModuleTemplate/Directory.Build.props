@@ -1,0 +1,26 @@
+<Project>
+    <PropertyGroup>
+        <!-- Target the current runtime -->
+        <TargetFramework>net9.0</TargetFramework>
+
+        <!-- Modern C# defaults -->
+        <Nullable>enable</Nullable>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <LangVersion>latest</LangVersion>
+
+        <!-- Domain stays platform-agnostic and lightweight -->
+        <IsPackable>false</IsPackable>
+        <Deterministic>true</Deterministic>
+        <GenerateDocumentationFile>true</GenerateDocumentationFile>
+
+        <!-- Turn on recommended analyzer set without being too noisy -->
+        <EnableNETAnalyzers>true</EnableNETAnalyzers>
+        <AnalysisLevel>latest-recommended</AnalysisLevel>
+        <TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+    </PropertyGroup>
+
+    <PropertyGroup Condition="'$(IsTestProject)' == 'true'">
+        <IsPackable>false</IsPackable>
+        <GenerateDocumentationFile>false</GenerateDocumentationFile>
+    </PropertyGroup>
+</Project>

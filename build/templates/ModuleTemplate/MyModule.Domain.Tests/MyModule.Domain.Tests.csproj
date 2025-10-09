@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>MyModule.Domain.Tests</RootNamespace>
+    <AssemblyName>MyModule.Domain.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\MyModule.Domain\MyModule.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="xunit.v3" Version="3.*" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.*" PrivateAssets="all" />
+    <PackageReference Include="FluentAssertions" Version="6.*" />
+    <PackageReference Include="NSubstitute" Version="5.*" />
+    <PackageReference Include="coverlet.collector" Version="6.*" PrivateAssets="all" />
+  </ItemGroup>
+
+</Project>

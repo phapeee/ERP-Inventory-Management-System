@@ -4,12 +4,16 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+
     <UserSecretsId>0e9e64ba-2b3f-455a-a174-10b41b7ca508</UserSecretsId>
+
     <EnableNETAnalyzers>true</EnableNETAnalyzers>
     <AnalysisLevel>latest</AnalysisLevel>
+    <NoWarn>$(NoWarn);CA2007</NoWarn>
+
     <AssemblyName>ErpApi</AssemblyName>
     <RootNamespace>ErpApi</RootNamespace>
-    <NoWarn>$(NoWarn);CA2007</NoWarn>
+
   </PropertyGroup>
 
   <ItemGroup>

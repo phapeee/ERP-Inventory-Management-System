@@ -1,0 +1,10 @@
+{
+  "$schema": "http://json.schemastore.org/template",
+  "author": "Your Name",
+  "classifications": ["Web", "Solution"],
+  "identity": "ERP.Module.Template",
+  "name": "ERP Module",
+  "shortName": "erp-module",
+  "sourceName": "MyModule",
+  "preferNameDirectory": true
+}
