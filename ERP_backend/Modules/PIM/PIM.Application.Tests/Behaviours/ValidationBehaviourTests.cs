@@ -1,12 +1,12 @@
 
 using FluentValidation;
 using MediatR;
-using PIM.Application.Behaviours;
+using PineConePro.Erp.PIM.Application.Behaviours;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace PIM.Application.Tests.Behaviours;
+namespace PineConePro.Erp.PIM.Application.Tests.Behaviours;
 
 /// <summary>
 /// Unit tests for the <see cref="ValidationBehaviour{TRequest, TResponse}"/> class.

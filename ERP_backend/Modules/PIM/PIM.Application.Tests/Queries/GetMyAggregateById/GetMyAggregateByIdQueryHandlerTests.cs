@@ -3,12 +3,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using NSubstitute;
-using PIM.Application.Dtos;
-using PIM.Application.Queries.GetMyAggregateById;
-using PIM.Domain.Aggregates;
-using PIM.Domain.Interfaces;
+using PineConePro.Erp.PIM.Application.Dtos;
+using PineConePro.Erp.PIM.Application.Queries.GetMyAggregateById;
+using PineConePro.Erp.PIM.Domain.Aggregates;
+using PineConePro.Erp.PIM.Domain.Interfaces;
 
-namespace PIM.Application.Tests.Queries.GetMyAggregateById;
+namespace PineConePro.Erp.PIM.Application.Tests.Queries.GetMyAggregateById;
 
 /// <summary>
 /// Unit tests for the <see cref="GetMyAggregateByIdQueryHandler"/> class.

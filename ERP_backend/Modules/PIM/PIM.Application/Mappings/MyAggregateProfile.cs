@@ -2,10 +2,10 @@
 // <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.*" />
 
 using AutoMapper;
-using PIM.Application.Dtos;
-using PIM.Domain.Aggregates;
+using PineConePro.Erp.PIM.Application.Dtos;
+using PineConePro.Erp.PIM.Domain.Aggregates;
 
-namespace PIM.Application.Mappings;
+namespace PineConePro.Erp.PIM.Application.Mappings;
 
 internal sealed class MyAggregateProfile : Profile
 {

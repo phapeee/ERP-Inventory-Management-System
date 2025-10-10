@@ -1,4 +1,4 @@
-namespace MyModule.Application.Interfaces;
+namespace PineConePro.Erp.MyModule.Application.Interfaces;
 
 /// <summary>
 /// Defines the email service.

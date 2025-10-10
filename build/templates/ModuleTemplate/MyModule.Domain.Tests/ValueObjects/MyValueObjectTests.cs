@@ -1,7 +1,7 @@
 using FluentAssertions;
-using MyModule.Domain.ValueObjects;
+using PineConePro.Erp.MyModule.Domain.ValueObjects;
 
-namespace MyModule.Domain.Tests.ValueObjects;
+namespace PineConePro.Erp.MyModule.Domain.Tests.ValueObjects;
 
 /// <summary>
 /// Unit tests for the <see cref="MyValueObject"/> class.

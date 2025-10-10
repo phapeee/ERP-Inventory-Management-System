@@ -30,6 +30,8 @@ builder.Services.AddDbContext<AppDb>(opts =>
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
+builder.Services.InstallDiscoveredModules(builder.Configuration);
+
 var app = builder.Build();
 
 await app.EnsureDatabaseConnectionAsync(connectionString);
@@ -46,4 +48,6 @@ app.UseHttpsRedirection();
 app.MapGet("/health", () => Results.Ok("ok"));
 
 app.MapControllers();
+app.MapDiscoveredModules();
+
 await app.RunAsync();

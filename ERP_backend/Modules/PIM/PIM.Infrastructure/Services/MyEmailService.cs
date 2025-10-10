@@ -1,9 +1,9 @@
 // To implement an email service, you might add a package like MailKit:
 // <PackageReference Include="MailKit" Version="4.*" />
 
-using PIM.Application.Interfaces; // Assuming the interface is in the Application layer
+using PineConePro.Erp.PIM.Application.Interfaces; // Assuming the interface is in the Application layer
 
-namespace PIM.Infrastructure.Services;
+namespace PineConePro.Erp.PIM.Infrastructure.Services;
 
 // This is a placeholder for an application-level service interface.
 // The interface would be defined in the Application layer.

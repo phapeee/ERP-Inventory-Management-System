@@ -1,4 +1,4 @@
-namespace MyModule.Domain.Exceptions;
+namespace PineConePro.Erp.MyModule.Domain.Exceptions;
 
 // Custom exceptions provide context-specific error information and can be used to handle specific failure scenarios.
 

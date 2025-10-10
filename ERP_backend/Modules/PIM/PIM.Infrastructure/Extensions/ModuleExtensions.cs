@@ -1,8 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
-using PIM.Domain.Interfaces;
-using PIM.Infrastructure.Persistence.Repositories;
+using PineConePro.Erp.PIM.Domain.Interfaces;
+using PineConePro.Erp.PIM.Infrastructure.Persistence.Repositories;
 
-namespace PIM.Infrastructure.Extensions;
+namespace PineConePro.Erp.PIM.Infrastructure.Extensions;
 
 /// <summary>
 /// Contains extension methods for setting up infrastructure services.

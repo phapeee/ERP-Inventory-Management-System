@@ -1,9 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using PIM.Domain.Interfaces;
+using PineConePro.Erp.PIM.Domain.Interfaces;
 
-namespace PIM.Application.Commands.UpdateMyAggregate;
+namespace PineConePro.Erp.PIM.Application.Commands.UpdateMyAggregate;
 
 internal sealed class UpdateMyAggregateCommandHandler : IRequestHandler<UpdateMyAggregateCommand, bool>
 {

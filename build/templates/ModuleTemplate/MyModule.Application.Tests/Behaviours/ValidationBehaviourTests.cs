@@ -1,12 +1,12 @@
 
 using FluentValidation;
 using MediatR;
-using MyModule.Application.Behaviours;
+using PineConePro.Erp.MyModule.Application.Behaviours;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Xunit;
 
-namespace MyModule.Application.Tests.Behaviours;
+namespace PineConePro.Erp.MyModule.Application.Tests.Behaviours;
 
 /// <summary>
 /// Unit tests for the <see cref="ValidationBehaviour{TRequest, TResponse}"/> class.

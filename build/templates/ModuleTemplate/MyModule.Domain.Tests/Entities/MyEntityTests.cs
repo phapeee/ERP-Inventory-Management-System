@@ -1,7 +1,7 @@
 using FluentAssertions;
-using MyModule.Domain.Entities;
+using PineConePro.Erp.MyModule.Domain.Entities;
 
-namespace MyModule.Domain.Tests.Entities;
+namespace PineConePro.Erp.MyModule.Domain.Tests.Entities;
 
 /// <summary>
 /// Unit tests for the <see cref="MyEntity"/> class.

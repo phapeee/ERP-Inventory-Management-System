@@ -1,4 +1,4 @@
-namespace PIM.Domain.Entities;
+namespace PineConePro.Erp.PIM.Domain.Entities;
 
 // Entities are objects that have a distinct identity that runs through time and different states.
 

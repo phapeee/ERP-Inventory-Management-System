@@ -1,6 +1,6 @@
 using System;
 
-namespace MyModule.Domain.Aggregates;
+namespace PineConePro.Erp.MyModule.Domain.Aggregates;
 
 // An aggregate root is a specific type of entity that serves as the entry point for an aggregate.
 // Aggregates are clusters of domain objects that can be treated as a single unit.

@@ -1,4 +1,4 @@
-namespace PIM.Application.Interfaces;
+namespace PineConePro.Erp.PIM.Application.Interfaces;
 
 /// <summary>
 /// Defines the email service.

@@ -5,14 +5,14 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using PIM.Application.Commands.CreateMyAggregate;
-using PIM.Application.Commands.DeleteMyAggregate;
-using PIM.Application.Commands.UpdateMyAggregate;
-using PIM.Application.Dtos;
-using PIM.Application.Queries.GetAllMyAggregates;
-using PIM.Application.Queries.GetMyAggregateById;
+using PineConePro.Erp.PIM.Application.Commands.CreateMyAggregate;
+using PineConePro.Erp.PIM.Application.Commands.DeleteMyAggregate;
+using PineConePro.Erp.PIM.Application.Commands.UpdateMyAggregate;
+using PineConePro.Erp.PIM.Application.Dtos;
+using PineConePro.Erp.PIM.Application.Queries.GetAllMyAggregates;
+using PineConePro.Erp.PIM.Application.Queries.GetMyAggregateById;
 
-namespace PIM.Presentation.Controllers;
+namespace PineConePro.Erp.PIM.Presentation.Controllers;
 
 /// <summary>
 /// RESTful controller for managing MyAggregate resources.

@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 
-namespace MyModule.Presentation.Extensions;
+namespace PineConePro.Erp.MyModule.Presentation.Extensions;
 
 /// <summary>
 /// Contains extension methods for setting up presentation services.

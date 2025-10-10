@@ -1,8 +1,8 @@
 using Microsoft.Extensions.DependencyInjection;
-using MyModule.Domain.Interfaces;
-using MyModule.Infrastructure.Persistence.Repositories;
+using PineConePro.Erp.MyModule.Domain.Interfaces;
+using PineConePro.Erp.MyModule.Infrastructure.Persistence.Repositories;
 
-namespace MyModule.Infrastructure.Extensions;
+namespace PineConePro.Erp.MyModule.Infrastructure.Extensions;
 
 /// <summary>
 /// Contains extension methods for setting up infrastructure services.

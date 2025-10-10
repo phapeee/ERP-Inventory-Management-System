@@ -5,14 +5,14 @@ using System.Threading.Tasks;
 using MediatR;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
-using MyModule.Application.Commands.CreateMyAggregate;
-using MyModule.Application.Commands.DeleteMyAggregate;
-using MyModule.Application.Commands.UpdateMyAggregate;
-using MyModule.Application.Dtos;
-using MyModule.Application.Queries.GetAllMyAggregates;
-using MyModule.Application.Queries.GetMyAggregateById;
+using PineConePro.Erp.MyModule.Application.Commands.CreateMyAggregate;
+using PineConePro.Erp.MyModule.Application.Commands.DeleteMyAggregate;
+using PineConePro.Erp.MyModule.Application.Commands.UpdateMyAggregate;
+using PineConePro.Erp.MyModule.Application.Dtos;
+using PineConePro.Erp.MyModule.Application.Queries.GetAllMyAggregates;
+using PineConePro.Erp.MyModule.Application.Queries.GetMyAggregateById;
 
-namespace MyModule.Presentation.Controllers;
+namespace PineConePro.Erp.MyModule.Presentation.Controllers;
 
 /// <summary>
 /// RESTful controller for managing MyAggregate resources.

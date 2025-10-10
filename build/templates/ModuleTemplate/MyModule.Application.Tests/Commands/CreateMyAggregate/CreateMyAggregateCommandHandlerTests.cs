@@ -2,11 +2,11 @@
 using FluentAssertions;
 using MediatR;
 using NSubstitute;
-using MyModule.Application.Commands.CreateMyAggregate;
-using MyModule.Domain.Aggregates;
-using MyModule.Domain.Interfaces;
+using PineConePro.Erp.MyModule.Application.Commands.CreateMyAggregate;
+using PineConePro.Erp.MyModule.Domain.Aggregates;
+using PineConePro.Erp.MyModule.Domain.Interfaces;
 
-namespace MyModule.Application.Tests.Commands.CreateMyAggregate;
+namespace PineConePro.Erp.MyModule.Application.Tests.Commands.CreateMyAggregate;
 
 /// <summary>
 /// Unit tests for the <see cref="CreateMyAggregateCommandHandler"/> class.

@@ -1,8 +1,8 @@
 using System.Collections.Generic;
 using MediatR;
-using PIM.Application.Dtos;
+using PineConePro.Erp.PIM.Application.Dtos;
 
-namespace PIM.Application.Queries.GetAllMyAggregates;
+namespace PineConePro.Erp.PIM.Application.Queries.GetAllMyAggregates;
 
 /// <summary>
 /// Represents the query to retrieve all aggregates.

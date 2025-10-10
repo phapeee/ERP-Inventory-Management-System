@@ -1,7 +1,7 @@
 using System;
 using MediatR;
 
-namespace PIM.Application.Commands.DeleteMyAggregate;
+namespace PineConePro.Erp.PIM.Application.Commands.DeleteMyAggregate;
 
 /// <summary>
 /// Represents the command to delete an aggregate.

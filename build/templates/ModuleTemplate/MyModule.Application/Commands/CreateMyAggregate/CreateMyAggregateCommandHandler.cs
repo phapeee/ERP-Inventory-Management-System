@@ -1,10 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using MyModule.Domain.Aggregates;
-using MyModule.Domain.Interfaces;
+using PineConePro.Erp.MyModule.Domain.Aggregates;
+using PineConePro.Erp.MyModule.Domain.Interfaces;
 
-namespace MyModule.Application.Commands.CreateMyAggregate;
+namespace PineConePro.Erp.MyModule.Application.Commands.CreateMyAggregate;
 
 internal sealed class CreateMyAggregateCommandHandler : IRequestHandler<CreateMyAggregateCommand, Guid>
 {

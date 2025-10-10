@@ -1,4 +1,4 @@
-namespace PIM.Domain.Enums;
+namespace PineConePro.Erp.PIM.Domain.Enums;
 
 /// <summary>
 /// Represents the status of an entity.

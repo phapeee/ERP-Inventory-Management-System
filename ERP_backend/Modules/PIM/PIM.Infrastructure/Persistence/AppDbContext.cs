@@ -3,10 +3,10 @@
 // <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.*" /> // Or your preferred provider
 
 using Microsoft.EntityFrameworkCore;
-using PIM.Domain.Aggregates;
+using PineConePro.Erp.PIM.Domain.Aggregates;
 using System.Reflection;
 
-namespace PIM.Infrastructure.Persistence;
+namespace PineConePro.Erp.PIM.Infrastructure.Persistence;
 
 internal class AppDbContext : DbContext
 {

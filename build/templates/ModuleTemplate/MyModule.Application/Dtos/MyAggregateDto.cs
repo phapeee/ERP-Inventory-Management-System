@@ -1,4 +1,4 @@
-namespace MyModule.Application.Dtos;
+namespace PineConePro.Erp.MyModule.Application.Dtos;
 
 /// <summary>
 /// Represents the data transfer object for MyAggregate.

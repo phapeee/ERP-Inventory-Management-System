@@ -1,8 +1,8 @@
 
 using FluentValidation.TestHelper;
-using PIM.Application.Commands.CreateMyAggregate;
+using PineConePro.Erp.PIM.Application.Commands.CreateMyAggregate;
 
-namespace PIM.Application.Tests.Commands.CreateMyAggregate;
+namespace PineConePro.Erp.PIM.Application.Tests.Commands.CreateMyAggregate;
 
 /// <summary>
 /// Unit tests for the <see cref="CreateMyAggregateCommandValidator"/> class.

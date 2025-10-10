@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using PIM.Domain.Aggregates;
+using PineConePro.Erp.PIM.Domain.Aggregates;
 
-namespace PIM.Infrastructure.Configuration;
+namespace PineConePro.Erp.PIM.Infrastructure.Configuration;
 
 internal class MyAggregateConfiguration : IEntityTypeConfiguration<MyAggregate>
 {

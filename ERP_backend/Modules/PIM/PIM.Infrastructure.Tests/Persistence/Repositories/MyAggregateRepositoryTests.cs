@@ -1,8 +1,8 @@
 using FluentAssertions;
-using PIM.Domain.Aggregates;
-using PIM.Infrastructure.Persistence.Repositories;
+using PineConePro.Erp.PIM.Domain.Aggregates;
+using PineConePro.Erp.PIM.Infrastructure.Persistence.Repositories;
 
-namespace PIM.Infrastructure.Tests.Persistence.Repositories;
+namespace PineConePro.Erp.PIM.Infrastructure.Tests.Persistence.Repositories;
 
 /// <summary>
 /// Unit tests for the <see cref="MyAggregateRepository"/> class.

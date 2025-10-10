@@ -1,4 +1,4 @@
-namespace MyModule.Domain.ValueObjects;
+namespace PineConePro.Erp.MyModule.Domain.ValueObjects;
 
 // Value Objects are objects that we care about for what they are, not who or which they are.
 // They are defined by their attributes and are typically immutable.

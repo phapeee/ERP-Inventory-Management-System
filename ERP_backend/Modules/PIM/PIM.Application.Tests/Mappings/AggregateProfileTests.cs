@@ -1,8 +1,8 @@
 
 using AutoMapper;
-using PIM.Application.Mappings;
+using PineConePro.Erp.PIM.Application.Mappings;
 
-namespace PIM.Application.Tests.Mappings;
+namespace PineConePro.Erp.PIM.Application.Tests.Mappings;
 
 /// <summary>
 /// Unit tests for the <see cref="MyAggregateProfile"/> class.

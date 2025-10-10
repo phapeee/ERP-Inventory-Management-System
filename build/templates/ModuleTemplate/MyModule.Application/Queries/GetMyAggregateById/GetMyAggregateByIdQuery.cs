@@ -1,7 +1,7 @@
 using MediatR;
-using MyModule.Application.Dtos;
+using PineConePro.Erp.MyModule.Application.Dtos;
 
-namespace MyModule.Application.Queries.GetMyAggregateById;
+namespace PineConePro.Erp.MyModule.Application.Queries.GetMyAggregateById;
 
 /// <summary>
 /// Represents the query to get an aggregate by its identifier.

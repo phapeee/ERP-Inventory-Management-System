@@ -1,10 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using PIM.Application.Dtos;
-using PIM.Domain.Interfaces;
+using PineConePro.Erp.PIM.Application.Dtos;
+using PineConePro.Erp.PIM.Domain.Interfaces;
 
-namespace PIM.Application.Queries.GetMyAggregateById;
+namespace PineConePro.Erp.PIM.Application.Queries.GetMyAggregateById;
 
 internal sealed class GetMyAggregateByIdQueryHandler : IRequestHandler<GetMyAggregateByIdQuery, MyAggregateDto?>
 {

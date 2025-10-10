@@ -1,4 +1,4 @@
-namespace MyModule.Domain.Entities;
+namespace PineConePro.Erp.MyModule.Domain.Entities;
 
 // Entities are objects that have a distinct identity that runs through time and different states.
 

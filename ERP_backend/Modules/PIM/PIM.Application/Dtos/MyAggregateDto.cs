@@ -1,4 +1,4 @@
-namespace PIM.Application.Dtos;
+namespace PineConePro.Erp.PIM.Application.Dtos;
 
 /// <summary>
 /// Represents the data transfer object for MyAggregate.

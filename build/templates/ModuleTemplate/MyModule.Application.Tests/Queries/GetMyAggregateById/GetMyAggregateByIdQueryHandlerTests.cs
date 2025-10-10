@@ -3,12 +3,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using NSubstitute;
-using MyModule.Application.Dtos;
-using MyModule.Application.Queries.GetMyAggregateById;
-using MyModule.Domain.Aggregates;
-using MyModule.Domain.Interfaces;
+using PineConePro.Erp.MyModule.Application.Dtos;
+using PineConePro.Erp.MyModule.Application.Queries.GetMyAggregateById;
+using PineConePro.Erp.MyModule.Domain.Aggregates;
+using PineConePro.Erp.MyModule.Domain.Interfaces;
 
-namespace MyModule.Application.Tests.Queries.GetMyAggregateById;
+namespace PineConePro.Erp.MyModule.Application.Tests.Queries.GetMyAggregateById;
 
 /// <summary>
 /// Unit tests for the <see cref="GetMyAggregateByIdQueryHandler"/> class.

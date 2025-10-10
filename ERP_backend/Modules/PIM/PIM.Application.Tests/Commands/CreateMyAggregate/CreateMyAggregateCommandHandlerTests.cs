@@ -2,11 +2,11 @@
 using FluentAssertions;
 using MediatR;
 using NSubstitute;
-using PIM.Application.Commands.CreateMyAggregate;
-using PIM.Domain.Aggregates;
-using PIM.Domain.Interfaces;
+using PineConePro.Erp.PIM.Application.Commands.CreateMyAggregate;
+using PineConePro.Erp.PIM.Domain.Aggregates;
+using PineConePro.Erp.PIM.Domain.Interfaces;
 
-namespace PIM.Application.Tests.Commands.CreateMyAggregate;
+namespace PineConePro.Erp.PIM.Application.Tests.Commands.CreateMyAggregate;
 
 /// <summary>
 /// Unit tests for the <see cref="CreateMyAggregateCommandHandler"/> class.

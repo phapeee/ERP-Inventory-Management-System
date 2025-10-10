@@ -1,10 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using MyModule.Application.Dtos;
-using MyModule.Domain.Interfaces;
+using PineConePro.Erp.MyModule.Application.Dtos;
+using PineConePro.Erp.MyModule.Domain.Interfaces;
 
-namespace MyModule.Application.Queries.GetMyAggregateById;
+namespace PineConePro.Erp.MyModule.Application.Queries.GetMyAggregateById;
 
 internal sealed class GetMyAggregateByIdQueryHandler : IRequestHandler<GetMyAggregateByIdQuery, MyAggregateDto?>
 {

@@ -1,6 +1,6 @@
 using FluentValidation;
 
-namespace PIM.Application.Commands.CreateMyAggregate;
+namespace PineConePro.Erp.PIM.Application.Commands.CreateMyAggregate;
 
 internal sealed class CreateMyAggregateCommandValidator : AbstractValidator<CreateMyAggregateCommand>
 {

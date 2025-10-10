@@ -1,7 +1,7 @@
 using MediatR;
-using PIM.Application.Dtos;
+using PineConePro.Erp.PIM.Application.Dtos;
 
-namespace PIM.Application.Queries.GetMyAggregateById;
+namespace PineConePro.Erp.PIM.Application.Queries.GetMyAggregateById;
 
 /// <summary>
 /// Represents the query to get an aggregate by its identifier.

@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using PIM.Domain.Aggregates;
-using PIM.Domain.Interfaces;
-using PIM.Infrastructure.Persistence;
+using PineConePro.Erp.PIM.Domain.Aggregates;
+using PineConePro.Erp.PIM.Domain.Interfaces;
+using PineConePro.Erp.PIM.Infrastructure.Persistence;
 
-namespace PIM.Infrastructure.Persistence.Repositories;
+namespace PineConePro.Erp.PIM.Infrastructure.Persistence.Repositories;
 
 // The repository implementation is in the infrastructure layer because it depends on a specific data access technology (e.g., EF Core).
 internal class MyAggregateRepository : IMyAggregateRepository

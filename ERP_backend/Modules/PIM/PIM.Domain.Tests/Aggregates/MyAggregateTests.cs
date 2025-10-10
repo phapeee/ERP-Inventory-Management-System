@@ -1,7 +1,7 @@
 using FluentAssertions;
-using PIM.Domain.Aggregates;
+using PineConePro.Erp.PIM.Domain.Aggregates;
 
-namespace PIM.Domain.Tests.Aggregates;
+namespace PineConePro.Erp.PIM.Domain.Tests.Aggregates;
 
 /// <summary>
 /// Unit tests for the <see cref="MyAggregate"/> class.

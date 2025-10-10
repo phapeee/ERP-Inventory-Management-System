@@ -1,7 +1,7 @@
 using FluentAssertions;
-using MyModule.Domain.Aggregates;
+using PineConePro.Erp.MyModule.Domain.Aggregates;
 
-namespace MyModule.Domain.Tests.Aggregates;
+namespace PineConePro.Erp.MyModule.Domain.Tests.Aggregates;
 
 /// <summary>
 /// Unit tests for the <see cref="MyAggregate"/> class.

@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
-using MyModule.Domain.Aggregates;
+using PineConePro.Erp.MyModule.Domain.Aggregates;
 
-namespace MyModule.Infrastructure.Configuration;
+namespace PineConePro.Erp.MyModule.Infrastructure.Configuration;
 
 internal class MyAggregateConfiguration : IEntityTypeConfiguration<MyAggregate>
 {

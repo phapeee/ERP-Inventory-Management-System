@@ -1,7 +1,7 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 
-namespace PIM.Application.Behaviours;
+namespace PineConePro.Erp.PIM.Application.Behaviours;
 
 internal static partial class LoggingBehaviourLogMessages
 {

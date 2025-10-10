@@ -1,7 +1,7 @@
 using FluentValidation;
 using MediatR;
 
-namespace PIM.Application.Behaviours;
+namespace PineConePro.Erp.PIM.Application.Behaviours;
 
 internal sealed class ValidationBehaviour<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : IRequest<TResponse>

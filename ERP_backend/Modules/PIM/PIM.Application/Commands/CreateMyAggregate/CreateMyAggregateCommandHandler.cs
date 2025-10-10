@@ -1,10 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using PIM.Domain.Aggregates;
-using PIM.Domain.Interfaces;
+using PineConePro.Erp.PIM.Domain.Aggregates;
+using PineConePro.Erp.PIM.Domain.Interfaces;
 
-namespace PIM.Application.Commands.CreateMyAggregate;
+namespace PineConePro.Erp.PIM.Application.Commands.CreateMyAggregate;
 
 internal sealed class CreateMyAggregateCommandHandler : IRequestHandler<CreateMyAggregateCommand, Guid>
 {

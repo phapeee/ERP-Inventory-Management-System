@@ -1,9 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using PIM.Domain.Interfaces;
+using PineConePro.Erp.PIM.Domain.Interfaces;
 
-namespace PIM.Application.Commands.DeleteMyAggregate;
+namespace PineConePro.Erp.PIM.Application.Commands.DeleteMyAggregate;
 
 internal sealed class DeleteMyAggregateCommandHandler : IRequestHandler<DeleteMyAggregateCommand, bool>
 {

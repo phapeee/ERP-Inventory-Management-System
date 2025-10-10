@@ -2,9 +2,9 @@
 using MediatR;
 using Microsoft.Extensions.Logging;
 using NSubstitute;
-using PIM.Application.Behaviours;
+using PineConePro.Erp.PIM.Application.Behaviours;
 
-namespace PIM.Application.Tests.Behaviours;
+namespace PineConePro.Erp.PIM.Application.Tests.Behaviours;
 
 /// <summary>
 /// Unit tests for the <see cref="LoggingBehaviour{TRequest, TResponse}"/> class.

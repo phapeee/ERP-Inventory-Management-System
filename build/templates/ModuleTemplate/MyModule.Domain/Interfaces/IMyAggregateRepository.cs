@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MyModule.Domain.Aggregates;
+using PineConePro.Erp.MyModule.Domain.Aggregates;
 
-namespace MyModule.Domain.Interfaces;
+namespace PineConePro.Erp.MyModule.Domain.Interfaces;
 
 /// <summary>
 /// Defines the repository for the MyAggregate aggregate.

@@ -3,10 +3,10 @@
 // <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.*" /> // Or your preferred provider
 
 using Microsoft.EntityFrameworkCore;
-using MyModule.Domain.Aggregates;
+using PineConePro.Erp.MyModule.Domain.Aggregates;
 using System.Reflection;
 
-namespace MyModule.Infrastructure.Persistence;
+namespace PineConePro.Erp.MyModule.Infrastructure.Persistence;
 
 internal class AppDbContext : DbContext
 {

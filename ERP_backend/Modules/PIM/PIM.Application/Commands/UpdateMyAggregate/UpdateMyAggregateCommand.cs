@@ -1,7 +1,7 @@
 using System;
 using MediatR;
 
-namespace PIM.Application.Commands.UpdateMyAggregate;
+namespace PineConePro.Erp.PIM.Application.Commands.UpdateMyAggregate;
 
 /// <summary>
 /// Represents the command to update an existing aggregate.

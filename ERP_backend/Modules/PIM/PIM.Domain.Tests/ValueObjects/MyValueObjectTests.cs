@@ -1,7 +1,7 @@
 using FluentAssertions;
-using PIM.Domain.ValueObjects;
+using PineConePro.Erp.PIM.Domain.ValueObjects;
 
-namespace PIM.Domain.Tests.ValueObjects;
+namespace PineConePro.Erp.PIM.Domain.Tests.ValueObjects;
 
 /// <summary>
 /// Unit tests for the <see cref="MyValueObject"/> class.

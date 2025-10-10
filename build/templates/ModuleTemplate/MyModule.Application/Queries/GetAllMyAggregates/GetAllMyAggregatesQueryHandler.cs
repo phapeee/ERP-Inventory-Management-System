@@ -3,10 +3,10 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using MyModule.Application.Dtos;
-using MyModule.Domain.Interfaces;
+using PineConePro.Erp.MyModule.Application.Dtos;
+using PineConePro.Erp.MyModule.Domain.Interfaces;
 
-namespace MyModule.Application.Queries.GetAllMyAggregates;
+namespace PineConePro.Erp.MyModule.Application.Queries.GetAllMyAggregates;
 
 internal sealed class GetAllMyAggregatesQueryHandler : IRequestHandler<GetAllMyAggregatesQuery, IReadOnlyCollection<MyAggregateDto>>
 {

@@ -1,7 +1,7 @@
 using FluentAssertions;
-using PIM.Domain.Entities;
+using PineConePro.Erp.PIM.Domain.Entities;
 
-namespace PIM.Domain.Tests.Entities;
+namespace PineConePro.Erp.PIM.Domain.Tests.Entities;
 
 /// <summary>
 /// Unit tests for the <see cref="MyEntity"/> class.

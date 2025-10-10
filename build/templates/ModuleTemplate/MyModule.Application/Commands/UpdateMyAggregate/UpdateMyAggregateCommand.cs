@@ -1,7 +1,7 @@
 using System;
 using MediatR;
 
-namespace MyModule.Application.Commands.UpdateMyAggregate;
+namespace PineConePro.Erp.MyModule.Application.Commands.UpdateMyAggregate;
 
 /// <summary>
 /// Represents the command to update an existing aggregate.

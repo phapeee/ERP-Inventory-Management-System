@@ -1,4 +1,4 @@
-namespace MyModule.Domain.Enums;
+namespace PineConePro.Erp.MyModule.Domain.Enums;
 
 /// <summary>
 /// Represents the status of an entity.

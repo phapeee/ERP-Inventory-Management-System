@@ -1,8 +1,8 @@
 
 using AutoMapper;
-using MyModule.Application.Mappings;
+using PineConePro.Erp.MyModule.Application.Mappings;
 
-namespace MyModule.Application.Tests.Mappings;
+namespace PineConePro.Erp.MyModule.Application.Tests.Mappings;
 
 /// <summary>
 /// Unit tests for the <see cref="MyAggregateProfile"/> class.

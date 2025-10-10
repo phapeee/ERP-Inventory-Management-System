@@ -1,6 +1,6 @@
 using MediatR;
 
-namespace MyModule.Application.Commands.CreateMyAggregate;
+namespace PineConePro.Erp.MyModule.Application.Commands.CreateMyAggregate;
 
 /// <summary>
 /// Represents the command to create a new MyAggregate.

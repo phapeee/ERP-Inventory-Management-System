@@ -1,4 +1,4 @@
-namespace MyModule.Domain.Events;
+namespace PineConePro.Erp.MyModule.Domain.Events;
 
 // Domain events are used to capture things that have happened in the domain.
 // They are often used for side-effect-free communication between aggregates or to publish integration events.

@@ -1,7 +1,7 @@
 using System;
 using MediatR;
 
-namespace MyModule.Application.Commands.DeleteMyAggregate;
+namespace PineConePro.Erp.MyModule.Application.Commands.DeleteMyAggregate;
 
 /// <summary>
 /// Represents the command to delete an aggregate.

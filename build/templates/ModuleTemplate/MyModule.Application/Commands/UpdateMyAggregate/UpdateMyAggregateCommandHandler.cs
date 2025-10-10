@@ -1,9 +1,9 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using MyModule.Domain.Interfaces;
+using PineConePro.Erp.MyModule.Domain.Interfaces;
 
-namespace MyModule.Application.Commands.UpdateMyAggregate;
+namespace PineConePro.Erp.MyModule.Application.Commands.UpdateMyAggregate;
 
 internal sealed class UpdateMyAggregateCommandHandler : IRequestHandler<UpdateMyAggregateCommand, bool>
 {

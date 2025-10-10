@@ -2,10 +2,10 @@
 // <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.*" />
 
 using AutoMapper;
-using MyModule.Application.Dtos;
-using MyModule.Domain.Aggregates;
+using PineConePro.Erp.MyModule.Application.Dtos;
+using PineConePro.Erp.MyModule.Domain.Aggregates;
 
-namespace MyModule.Application.Mappings;
+namespace PineConePro.Erp.MyModule.Application.Mappings;
 
 internal sealed class MyAggregateProfile : Profile
 {
