@@ -1,7 +1,7 @@
 using FluentAssertions;
-using MyModule.Domain.Aggregates;
+using PIM.Domain.Aggregates;
 
-namespace MyModule.Domain.Tests.Aggregates;
+namespace PIM.Domain.Tests.Aggregates;
 
 /// <summary>
 /// Unit tests for the <see cref="MyAggregate"/> class.

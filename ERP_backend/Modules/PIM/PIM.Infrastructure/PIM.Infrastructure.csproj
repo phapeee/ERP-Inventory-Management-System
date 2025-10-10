@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <RootNamespace>PIM.Infrastructure</RootNamespace>
+    <AssemblyName>PIM.Infrastructure</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Keep the direction: Infra knows App+Domain -->
+    <ProjectReference Include="..\PIM.Application\PIM.Application.csproj" />
+    <ProjectReference Include="..\PIM.Domain\PIM.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Host-agnostic DI/config/logging abstractions -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.*" />
+    <PackageReference Include="Microsoft.Extensions.Configuration.Abstractions" Version="9.*" />
+    <PackageReference Include="Microsoft.Extensions.Options.ConfigurationExtensions" Version="9.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="9.*" />
+
+    <PackageReference Include="Microsoft.EntityFrameworkCore" Version="9.0.9" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.9">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive; compile</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
+
+    <!-- TODO: Add your desired database provider, e.g., Microsoft.EntityFrameworkCore.SqlServer -->
+    <!-- TODO: Add other infrastructure dependencies like caching, email, etc. -->
+  </ItemGroup>
+
+  <!-- (Optional) Allow internals for Infra tests -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>PIM.Infrastructure.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,32 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Will be replaced by template engine via sourceName=PIM -->
+    <RootNamespace>PIM.Application</RootNamespace>
+    <AssemblyName>PIM.Application</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Domain dependency (interfaces, entities, domain events) -->
+    <ProjectReference Include="..\PIM.Domain\PIM.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Application-layer primitives -->
+    <PackageReference Include="AutoMapper.Extensions.Microsoft.DependencyInjection" Version="12.*" />
+    <PackageReference Include="MediatR" Version="13.*" />
+    <PackageReference Include="FluentValidation" Version="12.*" />
+
+    <!-- For AddApplication(IServiceCollection ...) extension without pulling in ASP.NET -->
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.*" />
+    <PackageReference Include="Microsoft.Extensions.Logging" Version="9.0.9" />
+  </ItemGroup>
+
+  <!-- (Optional) Allow internals to be tested -->
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>PIM.Application.Tests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
+</Project>

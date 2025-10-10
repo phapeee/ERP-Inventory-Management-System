@@ -2,9 +2,9 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MyModule.Domain.Aggregates;
+using PIM.Domain.Aggregates;
 
-namespace MyModule.Domain.Interfaces;
+namespace PIM.Domain.Interfaces;
 
 /// <summary>
 /// Defines the repository for the MyAggregate aggregate.

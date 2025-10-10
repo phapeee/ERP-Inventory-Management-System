@@ -3,12 +3,12 @@ using System.Threading;
 using System.Threading.Tasks;
 using FluentAssertions;
 using NSubstitute;
-using MyModule.Application.Dtos;
-using MyModule.Application.Queries.GetMyAggregateById;
-using MyModule.Domain.Aggregates;
-using MyModule.Domain.Interfaces;
+using PIM.Application.Dtos;
+using PIM.Application.Queries.GetMyAggregateById;
+using PIM.Domain.Aggregates;
+using PIM.Domain.Interfaces;
 
-namespace MyModule.Application.Tests.Queries.GetMyAggregateById;
+namespace PIM.Application.Tests.Queries.GetMyAggregateById;
 
 /// <summary>
 /// Unit tests for the <see cref="GetMyAggregateByIdQueryHandler"/> class.

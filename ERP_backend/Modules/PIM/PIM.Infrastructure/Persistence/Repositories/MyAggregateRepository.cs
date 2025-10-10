@@ -2,11 +2,11 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using MyModule.Domain.Aggregates;
-using MyModule.Domain.Interfaces;
-using MyModule.Infrastructure.Persistence;
+using PIM.Domain.Aggregates;
+using PIM.Domain.Interfaces;
+using PIM.Infrastructure.Persistence;
 
-namespace MyModule.Infrastructure.Persistence.Repositories;
+namespace PIM.Infrastructure.Persistence.Repositories;
 
 // The repository implementation is in the infrastructure layer because it depends on a specific data access technology (e.g., EF Core).
 internal class MyAggregateRepository : IMyAggregateRepository

@@ -1,10 +1,10 @@
 using System.Threading;
 using System.Threading.Tasks;
 using MediatR;
-using MyModule.Domain.Aggregates;
-using MyModule.Domain.Interfaces;
+using PIM.Domain.Aggregates;
+using PIM.Domain.Interfaces;
 
-namespace MyModule.Application.Commands.CreateMyAggregate;
+namespace PIM.Application.Commands.CreateMyAggregate;
 
 internal sealed class CreateMyAggregateCommandHandler : IRequestHandler<CreateMyAggregateCommand, Guid>
 {

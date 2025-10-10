@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Routing;
 
-namespace MyModule.Presentation.Extensions;
+namespace PIM.Presentation.Extensions;
 
 /// <summary>
 /// Contains extension methods for setting up presentation services.
@@ -13,7 +13,7 @@ public static class ModuleExtensions
     /// </summary>
     /// <param name="app">The <see cref="IEndpointRouteBuilder"/> to add endpoints to.</param>
     /// <returns>The <see cref="IEndpointRouteBuilder"/> so that additional calls can be chained.</returns>
-    public static IEndpointRouteBuilder MapMyModuleEndpoints(this IEndpointRouteBuilder app)
+    public static IEndpointRouteBuilder MapPIMEndpoints(this IEndpointRouteBuilder app)
     {
         // This is the single entry point for registering all endpoints in the module.
         app.MapControllers();
