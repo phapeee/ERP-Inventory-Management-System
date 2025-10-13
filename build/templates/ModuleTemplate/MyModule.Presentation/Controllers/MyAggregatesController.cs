@@ -34,6 +34,16 @@ public sealed class MyAggregatesController : ControllerBase
     }
 
     /// <summary>
+    /// Gets the health status of the module.
+    /// </summary>
+    [HttpGet("health")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public IActionResult HealthCheck()
+    {
+        return Ok(new { status = "ok" });
+    }
+
+    /// <summary>
     /// Gets all aggregates.
     /// </summary>
     [HttpGet]

@@ -12,6 +12,6 @@ public sealed class ModuleInstaller : IModuleInstaller
     /// <inheritdoc />
     public void Install(IServiceCollection services, IConfiguration configuration)
     {
-        services.AddInfrastructure();
+        services.AddInfrastructure(configuration);
     }
 }

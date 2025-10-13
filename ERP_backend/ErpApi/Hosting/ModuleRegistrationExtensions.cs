@@ -8,6 +8,8 @@ using Microsoft.AspNetCore.Routing;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyModel;
+using Microsoft.Extensions.Logging;
+using PineConePro.Erp.PIM.Presentation.Modules;
 
 namespace ErpApi.Hosting;
 
@@ -16,16 +18,17 @@ internal static class ModuleRegistrationExtensions
     private const string InstallerInterfaceName = "IModuleInstaller";
     private const string ModuleInterfaceName = "IModule";
     private const string InstallMethodName = "Install";
-    private const string MapEndpointsMethodName = "MapEndpoints";
 
     public static IServiceCollection InstallDiscoveredModules(this IServiceCollection services, IConfiguration configuration)
     {
         ArgumentNullException.ThrowIfNull(services);
         ArgumentNullException.ThrowIfNull(configuration);
 
+        var logger = services.BuildServiceProvider().GetRequiredService<ILogger<IModuleRegistry>>();
+
         foreach (var installerType in GetCandidateTypes(InstallerInterfaceName))
         {
-            InvokeInstall(installerType, services, configuration);
+            InvokeInstall(installerType, services, configuration, logger);
         }
 
         return services;
@@ -35,30 +38,28 @@ internal static class ModuleRegistrationExtensions
     {
         ArgumentNullException.ThrowIfNull(endpoints);
 
+        var logger = endpoints.ServiceProvider.GetRequiredService<ILogger<IModuleRegistry>>();
+        var moduleRegistry = endpoints.ServiceProvider.GetRequiredService<IModuleRegistry>();
+
         foreach (var moduleType in GetCandidateTypes(ModuleInterfaceName))
         {
-            InvokeMapEndpoints(moduleType, endpoints);
+            logger.LogInformation("Mapping endpoints for module {ModuleType}", moduleType.FullName);
+            var module = (IModule)Activator.CreateInstance(moduleType)!;
+            moduleRegistry.AddModule(module);
+            module.MapEndpoints(endpoints);
         }
 
         return endpoints;
     }
 
-    private static void InvokeInstall(Type installerType, IServiceCollection services, IConfiguration configuration)
+    private static void InvokeInstall(Type installerType, IServiceCollection services, IConfiguration configuration, ILogger logger)
     {
+        logger.LogInformation("Installing module from installer {InstallerType}", installerType.FullName);
         var instance = Activator.CreateInstance(installerType)
                       ?? throw new InvalidOperationException($"Unable to instantiate installer '{installerType.FullName}'.");
 
         var installMethod = ResolveMethod(installerType, InstallMethodName, typeof(IServiceCollection), typeof(IConfiguration));
         installMethod.Invoke(instance, new object[] { services, configuration });
-    }
-
-    private static void InvokeMapEndpoints(Type moduleType, IEndpointRouteBuilder endpoints)
-    {
-        var instance = Activator.CreateInstance(moduleType)
-                      ?? throw new InvalidOperationException($"Unable to instantiate module '{moduleType.FullName}'.");
-
-        var mapMethod = ResolveMethod(moduleType, MapEndpointsMethodName, typeof(IEndpointRouteBuilder));
-        mapMethod.Invoke(instance, new object[] { endpoints });
     }
 
     private static MethodInfo ResolveMethod(Type type, string methodName, params Type[] parameterTypes)
@@ -155,17 +156,21 @@ internal static class ModuleRegistrationExtensions
             return ex.Types.Where(t => t is not null)!;
         }
     }
+}
 
-    private static IEnumerable<TSource> DistinctBy<TSource, TKey>(this IEnumerable<TSource> source, Func<TSource, TKey> keySelector)
-        where TKey : notnull
+public interface IModuleRegistry
+{
+    IEnumerable<IModule> Modules { get; }
+    void AddModule(IModule module);
+}
+
+public class ModuleRegistry : IModuleRegistry
+{
+    private readonly List<IModule> _modules = new();
+    public IEnumerable<IModule> Modules => _modules;
+
+    public void AddModule(IModule module)
     {
-        var set = new HashSet<TKey>();
-        foreach (var element in source)
-        {
-            if (set.Add(keySelector(element)))
-            {
-                yield return element;
-            }
-        }
+        _modules.Add(module);
     }
 }

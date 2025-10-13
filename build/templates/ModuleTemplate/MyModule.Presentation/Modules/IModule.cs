@@ -13,6 +13,11 @@ public interface IModule
     string Name { get; }
 
     /// <summary>
+    /// Gets the relative URL of the module's health endpoint.
+    /// </summary>
+    string HealthEndpointUrl { get; }
+
+    /// <summary>
     /// Maps the module's endpoints onto the provided route builder.
     /// </summary>
     /// <param name="endpoints">The route builder to populate.</param>

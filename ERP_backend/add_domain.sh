@@ -18,6 +18,7 @@ fi
 
 MODULE_DIR="Modules/$MODULE_NAME"
 SOLUTION_FILE="ERP-Inventory-Management-System.sln"
+API_PROJECT_FILE="ErpApi/ErpApi.csproj"
 
 if [ -d "$MODULE_DIR" ]; then
   if [ "$REPLACE" = true ]; then
@@ -32,6 +33,10 @@ if [ -d "$MODULE_DIR" ]; then
       dotnet sln $SOLUTION_FILE remove "$MODULE_DIR/$MODULE_NAME.Infrastructure/$MODULE_NAME.Infrastructure.csproj"
       dotnet sln $SOLUTION_FILE remove "$MODULE_DIR/$MODULE_NAME.Infrastructure.Tests/$MODULE_NAME.Infrastructure.Tests.csproj"
       dotnet sln $SOLUTION_FILE remove "$MODULE_DIR/$MODULE_NAME.Presentation/$MODULE_NAME.Presentation.csproj"
+
+      echo "Removing project references from ErpApi..."
+      dotnet remove $API_PROJECT_FILE reference "$MODULE_DIR/$MODULE_NAME.Infrastructure/$MODULE_NAME.Infrastructure.csproj"
+      dotnet remove $API_PROJECT_FILE reference "$MODULE_DIR/$MODULE_NAME.Presentation/$MODULE_NAME.Presentation.csproj"
       
       echo "Removing existing module directory..."
       rm -rf "$MODULE_DIR"
@@ -57,5 +62,9 @@ dotnet sln $SOLUTION_FILE add "$MODULE_DIR/$MODULE_NAME.Application.Tests/$MODUL
 dotnet sln $SOLUTION_FILE add "$MODULE_DIR/$MODULE_NAME.Infrastructure/$MODULE_NAME.Infrastructure.csproj"
 dotnet sln $SOLUTION_FILE add "$MODULE_DIR/$MODULE_NAME.Infrastructure.Tests/$MODULE_NAME.Infrastructure.Tests.csproj"
 dotnet sln $SOLUTION_FILE add "$MODULE_DIR/$MODULE_NAME.Presentation/$MODULE_NAME.Presentation.csproj"
+
+echo "Adding project references to ErpApi..."
+dotnet add $API_PROJECT_FILE reference "$MODULE_DIR/$MODULE_NAME.Infrastructure/$MODULE_NAME.Infrastructure.csproj"
+dotnet add $API_PROJECT_FILE reference "$MODULE_DIR/$MODULE_NAME.Presentation/$MODULE_NAME.Presentation.csproj"
 
 echo "Module '$MODULE_NAME' created successfully."

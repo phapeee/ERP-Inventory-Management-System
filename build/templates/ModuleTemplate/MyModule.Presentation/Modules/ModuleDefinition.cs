@@ -12,6 +12,9 @@ public sealed class ModuleDefinition : IModule
     public string Name => "MyModule";
 
     /// <inheritdoc />
+    public string HealthEndpointUrl => "/api/my-aggregates/health";
+
+    /// <inheritdoc />
     public void MapEndpoints(IEndpointRouteBuilder endpoints)
     {
         endpoints.MapMyModuleEndpoints();

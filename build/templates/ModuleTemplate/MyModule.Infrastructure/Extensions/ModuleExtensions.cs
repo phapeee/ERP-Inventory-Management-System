@@ -1,4 +1,8 @@
+using MediatR;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using PineConePro.Erp.MyModule.Application.Commands.CreateMyAggregate;
 using PineConePro.Erp.MyModule.Domain.Interfaces;
 using PineConePro.Erp.MyModule.Infrastructure.Persistence.Repositories;
 
@@ -13,20 +17,16 @@ public static class ModuleExtensions
     /// Adds infrastructure services to the specified <see cref="IServiceCollection"/>.
     /// </summary>
     /// <param name="services">The <see cref="IServiceCollection"/> to add services to.</param>
+    /// <param name="configuration">The configuration.</param>
     /// <returns>The <see cref="IServiceCollection"/> so that additional calls can be chained.</returns>
-    public static IServiceCollection AddInfrastructure(this IServiceCollection services)
+    public static IServiceCollection AddInfrastructure(this IServiceCollection services, IConfiguration configuration)
     {
-        // Register repositories
+        services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(CreateMyAggregateCommand).Assembly));
+
         services.AddScoped<IMyAggregateRepository, MyAggregateRepository>();
 
-        // Register other services
-        // services.AddScoped<IEmailService, MyEmailService>();
-
-        // Add DbContext
-        /*
         services.AddDbContext<Persistence.AppDbContext>(options =>
-            options.UseSqlServer("your-connection-string")); // Or another provider
-        */
+            options.UseNpgsql(configuration["DB_CONNECTION_STRING"]));
 
         return services;
     }
