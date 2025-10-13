@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>PIM.Application.Tests</RootNamespace>
+    <AssemblyName>PIM.Application.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\PIM.Application\PIM.Application.csproj" />
+    <ProjectReference Include="..\PIM.Domain\PIM.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="AutoMapper" Version="12.*" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="xunit.v3" Version="3.*" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.*" PrivateAssets="all" />
+    <PackageReference Include="FluentAssertions" Version="6.*" />
+    <PackageReference Include="NSubstitute" Version="5.*" />
+    <PackageReference Include="coverlet.collector" Version="6.*" PrivateAssets="all" />
+  </ItemGroup>
+</Project>

@@ -34,6 +34,10 @@
   <ItemGroup>
     <ProjectReference Include="..\Modules\PIM\PIM.Infrastructure\PIM.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\PIM\PIM.Presentation\PIM.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\--help\--help.Infrastructure\--help.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\--help\--help.Presentation\--help.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\-h\-h.Infrastructure\-h.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\-h\-h.Presentation\-h.Presentation.csproj" />
   </ItemGroup>
 
 </Project>
