@@ -50,6 +50,8 @@
     <ProjectReference Include="..\Modules\TaxReporting\TaxReporting.Presentation\TaxReporting.Presentation.csproj" />
     <ProjectReference Include="..\Modules\Accounting\Accounting.Infrastructure\Accounting.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Accounting\Accounting.Presentation\Accounting.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Operation\Operation.Infrastructure\Operation.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Operation\Operation.Presentation\Operation.Presentation.csproj" />
   </ItemGroup>
 
 </Project>
