@@ -46,6 +46,10 @@
     <ProjectReference Include="..\Modules\PurchasingVendor\PurchasingVendor.Presentation\PurchasingVendor.Presentation.csproj" />
     <ProjectReference Include="..\Modules\Shipping\Shipping.Infrastructure\Shipping.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Shipping\Shipping.Presentation\Shipping.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\TaxReporting\TaxReporting.Infrastructure\TaxReporting.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\TaxReporting\TaxReporting.Presentation\TaxReporting.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Accounting\Accounting.Infrastructure\Accounting.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Accounting\Accounting.Presentation\Accounting.Presentation.csproj" />
   </ItemGroup>
 
 </Project>
