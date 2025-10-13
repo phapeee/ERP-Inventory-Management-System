@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsTestProject>true</IsTestProject>
+    <RootNamespace>Shipping.Infrastructure.Tests</RootNamespace>
+    <AssemblyName>Shipping.Infrastructure.Tests</AssemblyName>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Shipping.Infrastructure\Shipping.Infrastructure.csproj" />
+    <ProjectReference Include="..\Shipping.Application\Shipping.Application.csproj" />
+    <ProjectReference Include="..\Shipping.Domain\Shipping.Domain.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="xunit.runner.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.13.0" />
+    <PackageReference Include="xunit.v3" Version="3.*" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.*" PrivateAssets="all" />
+    <PackageReference Include="FluentAssertions" Version="6.*" />
+    <PackageReference Include="coverlet.collector" Version="6.*" PrivateAssets="all" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Relational" Version="9.0.9" />
+  </ItemGroup>
+</Project>

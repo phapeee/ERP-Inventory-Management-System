@@ -44,6 +44,8 @@
     <ProjectReference Include="..\Modules\OrderRMA\OrderRMA.Presentation\OrderRMA.Presentation.csproj" />
     <ProjectReference Include="..\Modules\PurchasingVendor\PurchasingVendor.Infrastructure\PurchasingVendor.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\PurchasingVendor\PurchasingVendor.Presentation\PurchasingVendor.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Shipping\Shipping.Infrastructure\Shipping.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Shipping\Shipping.Presentation\Shipping.Presentation.csproj" />
   </ItemGroup>
 
 </Project>
