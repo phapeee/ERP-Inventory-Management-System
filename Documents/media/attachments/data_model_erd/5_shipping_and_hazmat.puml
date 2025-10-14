@@ -1,0 +1,284 @@
+@startuml
+title ERP – Shipping & Hazmat ERD (Baseline)
+
+hide methods
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  BorderColor #555
+}
+
+' ---------- Address ----------
+class Address {
+  +address_id : UUID <<PK>>
+  name : text
+  company : text
+  line1 : text
+  line2 : text?
+  city : text
+  region : text
+  postal_code : text
+  country_code : char(2)
+  phone : text?
+  email : text?
+  is_residential : bool
+}
+
+' ---------- Carriers & Services ----------
+class Carrier {
+  +carrier_id : UUID <<PK>>
+  code : text <<UQ>>  ' ups, fedex, usps, dhl
+  name : text
+  api_base_url : text?
+  supports_address_validation : bool
+  supports_webhooks : bool
+}
+
+class CarrierService {
+  +carrier_service_id : UUID <<PK>>
+  carrier_id : UUID <<FK>>
+  code : text
+  name : text
+  is_international : bool
+  hazmat_supported : bool
+  transit_profile : jsonb?
+  {unique} (carrier_id, code)
+}
+Carrier "1" --> "1..*" CarrierService
+
+class CarrierAccount {
+  +carrier_account_id : UUID <<PK>>
+  carrier_id : UUID <<FK>>
+  account_number : text
+  meter_number : text?
+  credentials_ref : text  ' reference to secret store
+  shipper_address_id : UUID <<FK?>>
+  is_active : bool
+  {unique} (carrier_id, account_number)
+}
+Carrier "1" --> "1..*" CarrierAccount
+Address "1" --> "0..*" CarrierAccount : shipper
+
+' ---------- Hazmat Agreements (effective-dated) ----------
+class HazmatAgreement {
+  +hazmat_agreement_id : UUID <<PK>>
+  carrier_account_id : UUID <<FK>>
+  agreement_number : text
+  valid_from : timestamptz
+  valid_to : timestamptz?
+  allowed_hazard_classes : jsonb?
+  allowed_packing_groups : jsonb?
+  document_url : text?
+  approved_by_user_id : UUID?
+  -- Enforced non-overlap per account
+}
+CarrierAccount "1" --> "0..*" HazmatAgreement
+
+' ---------- Rate Shopping ----------
+class RateRequest {
+  +rate_request_id : UUID <<PK>>
+  order_id : UUID?         ' Orders module
+  requested_at : timestamptz
+  ship_from_address_id : UUID <<FK>>
+  ship_to_address_id : UUID <<FK>>
+  total_weight_kg : numeric(12,3)?
+  total_packages : int
+  dims_json : jsonb?       ' array of packages dims
+  hazmat_flag : bool
+}
+Address "1" --> "0..*" RateRequest : ship_from
+Address "1" --> "0..*" RateRequest : ship_to
+
+class ShipmentRate {
+  +shipment_rate_id : UUID <<PK>>
+  rate_request_id : UUID <<FK>>
+  carrier_account_id : UUID <<FK?>>
+  carrier_service_id : UUID <<FK>>
+  negotiated_rate : bool
+  currency : text
+  base_amount : numeric(12,2)
+  surcharges_amount : numeric(12,2)
+  total_amount : numeric(12,2) <<computed>>
+  delivery_days : int?
+  estimated_delivery_date : date?
+  rate_id_external : text?
+  valid_until : timestamptz?
+}
+RateRequest "1" --> "1..*" ShipmentRate
+CarrierAccount "1" --> "0..*" ShipmentRate
+CarrierService "1" --> "0..*" ShipmentRate
+
+' ---------- Address Validation ----------
+class AddressValidation {
+  +address_validation_id : UUID <<PK>>
+  address_id : UUID <<FK>>
+  carrier_id : UUID <<FK?>>
+  requested_at : timestamptz
+  status : text   ' success/partial/fail
+  result_json : jsonb?
+  candidate_address_id : UUID <<FK?>>
+}
+Address "1" --> "0..*" AddressValidation
+Carrier "1" --> "0..*" AddressValidation
+Address "1" --> "0..*" AddressValidation : candidate
+
+' ---------- Shipments ----------
+class Shipment {
+  +shipment_id : UUID <<PK>>
+  order_id : UUID?         ' Orders module
+  rma_id : UUID?           ' Returns module
+  carrier_account_id : UUID <<FK>>
+  carrier_service_id : UUID <<FK>>
+  ship_from_address_id : UUID <<FK>>
+  ship_to_address_id : UUID <<FK>>
+  status : text            ' created/purchased/in_transit/delivered/ndr/returned/canceled
+  created_at : timestamptz
+  purchased_at : timestamptz?
+  tracking_number : text?
+  tracking_url : text?
+  label_format : text?     ' pdf/zpl
+  label_url : text?
+  total_weight_kg : numeric(12,3)?
+  total_packages : int
+  hazmat_flag : bool
+  est_delivery_date : date?
+}
+CarrierAccount "1" --> "0..*" Shipment
+CarrierService "1" --> "0..*" Shipment
+Address "1" --> "0..*" Shipment : ship_from
+Address "1" --> "0..*" Shipment : ship_to
+
+class ShipmentPackage {
+  +shipment_package_id : UUID <<PK>>
+  shipment_id : UUID <<FK>>
+  package_index : int
+  weight_kg : numeric(12,3)
+  length_cm : numeric(12,1)?
+  width_cm : numeric(12,1)?
+  height_cm : numeric(12,1)?
+  packaging_type : text?
+  reference : text?
+  hazmat_flag : bool
+  {unique} (shipment_id, package_index)
+}
+Shipment "1" --> "1..*" ShipmentPackage
+
+class ShipmentPackageItem {
+  +shipment_package_item_id : UUID <<PK>>
+  shipment_package_id : UUID <<FK>>
+  order_line_id : UUID?
+  product_variant_id : UUID?
+  quantity : numeric(12,3)
+}
+ShipmentPackage "1" --> "0..*" ShipmentPackageItem
+
+class ShipmentPackageHazmat {
+  +shipment_package_hazmat_id : UUID <<PK>>
+  shipment_package_id : UUID <<FK>>
+  un_number : text
+  proper_shipping_name : text
+  hazard_class : text
+  packing_group : text?
+  quantity : numeric(12,3)?
+  quantity_uom : text?
+  net_explosive_mass_kg : numeric(12,3)?
+  limited_quantity : bool
+  excepted_quantity : bool
+}
+ShipmentPackage "1" --> "0..*" ShipmentPackageHazmat
+
+' ---------- Labels & Documents ----------
+class ShipmentLabel {
+  +shipment_label_id : UUID <<PK>>
+  shipment_id : UUID <<FK>>
+  format : text    ' pdf/zpl
+  url : text
+  size_bytes : bigint?
+  created_at : timestamptz
+}
+Shipment "1" --> "0..*" ShipmentLabel
+
+class HazmatDocument {
+  +hazmat_document_id : UUID <<PK>>
+  shipment_id : UUID <<FK>>
+  shipment_package_id : UUID <<FK?>>
+  doc_type : text   ' shipper_declaration, sds, marking_label
+  url : text
+  version : int
+  created_at : timestamptz
+}
+Shipment "1" --> "0..*" HazmatDocument
+ShipmentPackage "1" --> "0..*" HazmatDocument
+
+' ---------- Tracking & Notifications ----------
+class TrackingEvent {
+  +tracking_event_id : UUID <<PK>>
+  shipment_id : UUID <<FK>>
+  carrier_code : text
+  status_code : text
+  description : text?
+  event_time : timestamptz
+  city : text?
+  region : text?
+  country_code : char(2)?
+  raw_json : jsonb?
+}
+Shipment "1" --> "0..*" TrackingEvent
+
+class NotificationLog {
+  +notification_log_id : UUID <<PK>>
+  shipment_id : UUID <<FK>>
+  event_type : text  ' shipment_created/in_transit/delivered/ndr
+  channel : text     ' email/sms/webhook
+  target : text
+  sent_at : timestamptz
+  status : text      ' sent/failed
+  response_meta : jsonb?
+}
+Shipment "1" --> "0..*" NotificationLog
+
+' ---------- NDR / Redelivery / Returns ----------
+class NonDeliveryReport {
+  +ndr_id : UUID <<PK>>
+  shipment_id : UUID <<FK>>
+  reason_code : text
+  description : text?
+  reported_at : timestamptz
+  action_taken : text?
+  resolved_at : timestamptz?
+}
+Shipment "1" --> "0..*" NonDeliveryReport
+
+class PickupRequest {
+  +pickup_request_id : UUID <<PK>>
+  carrier_account_id : UUID <<FK>>
+  pickup_date : date
+  location_address_id : UUID <<FK>>
+  confirmation_number : text?
+  status : text  ' requested/confirmed/canceled
+  requested_at : timestamptz
+}
+CarrierAccount "1" --> "0..*" PickupRequest
+Address "1" --> "0..*" PickupRequest : location
+
+class ReturnShipment {
+  +return_shipment_id : UUID <<PK>>
+  original_shipment_id : UUID <<FK?>>
+  rma_id : UUID?
+  shipment_id : UUID <<FK>>  ' points to the return label shipment
+  {unique} (shipment_id)
+}
+Shipment "1" --> "0..1" ReturnShipment : original
+Shipment "1" --> "0..1" ReturnShipment : return
+
+' ---------- Events (in-process bus outbox) ----------
+class EventOutbox {
+  +event_outbox_id : UUID <<PK>>
+  topic : text  ' shipping.shipment-created / delivered
+  payload_json : jsonb
+  created_at : timestamptz
+  published_at : timestamptz?
+  status : text  ' pending/published/failed
+}
+
+@enduml

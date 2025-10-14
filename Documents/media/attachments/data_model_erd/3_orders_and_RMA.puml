@@ -1,0 +1,265 @@
+@startuml
+title ERP – Orders & RMA (Baseline ERD)
+
+hide methods
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  BorderColor #555
+}
+
+' ---------- References / anchors ----------
+class SalesChannel {
+  +channel_id : UUID <<PK>>
+  code : text <<UQ>>
+  name : text
+}
+
+class CustomerRef {
+  +customer_id : UUID <<PK>>
+  code : text <<UQ>>
+  name : text
+}
+
+class AddressRef {
+  +address_id : UUID <<PK>>
+  line1 : text
+  line2 : text
+  city : text
+  region : text
+  postal : text
+  country : text
+}
+
+' ---------- Orders ----------
+class OrderHeader {
+  +order_id : UUID <<PK>>
+  order_number : text <<UQ>>
+  customer_id : UUID <<FK>>
+  channel_id : UUID <<FK>>
+  bill_to_address_id : UUID <<FK?>>
+  ship_to_address_id : UUID <<FK?>>
+  status : text  ' New/Allocated/Picked/Shipped/Invoiced/Closed/Cancelled/Returned
+  fulfillment_status : text ' Unfulfilled/PartiallyFulfilled/Fulfilled
+  payment_status : text ' Unpaid/Authorized/PartiallyCaptured/Captured/Refunded/Voided
+  currency : text
+  service_level : text
+  subtotal_amount : numeric(12,2)
+  discount_amount : numeric(12,2)
+  shipping_amount : numeric(12,2)
+  tax_amount : numeric(12,2)
+  total_amount : numeric(12,2)
+  placed_at : timestamptz
+  cancelled_at : timestamptz?
+  backorder_flag : bool
+  fraud_flag : bool
+  notes : text
+}
+SalesChannel "1" --> "0..*" OrderHeader
+CustomerRef "1" --> "0..*" OrderHeader
+AddressRef "1" --> "0..*" OrderHeader : bill_to
+AddressRef "1" --> "0..*" OrderHeader : ship_to
+
+class OrderLine {
+  +order_line_id : UUID <<PK>>
+  order_id : UUID <<FK>>
+  product_variant_id : UUID
+  description : text
+  qty_ordered : numeric(12,3)
+  qty_allocated : numeric(12,3)
+  qty_shipped : numeric(12,3)
+  unit_price : numeric(12,2)
+  discount_amount : numeric(12,2)
+  tax_amount : numeric(12,2)
+  line_total : numeric(12,2)
+  backorder_flag : bool
+}
+OrderHeader "1" --> "1..*" OrderLine
+
+class OrderAdjustment {
+  +adjustment_id : UUID <<PK>>
+  order_id : UUID <<FK>>
+  order_line_id : UUID <<FK?>>
+  kind : text ' Discount/Surcharge/Coupon/Promotion
+  description : text
+  amount : numeric(12,2)
+  percent : numeric(9,4)?
+}
+OrderHeader "1" --> "0..*" OrderAdjustment
+OrderLine "1" --> "0..*" OrderAdjustment
+
+class InventoryReservation {
+  +reservation_id : UUID <<PK>>
+  order_line_id : UUID <<FK>>
+  location_id : UUID
+  qty_reserved : numeric(12,3)
+  status : text ' Active/Released/Consumed
+  created_at : timestamptz
+  released_at : timestamptz?
+}
+OrderLine "1" --> "0..*" InventoryReservation
+
+' ---------- Payments ----------
+class PaymentTransaction {
+  +payment_id : UUID <<PK>>
+  order_id : UUID <<FK>>
+  txn_type : text ' Authorization/Capture/Refund/Void
+  status : text ' Pending/Succeeded/Failed
+  amount : numeric(12,2)
+  currency : text
+  gateway_code : text
+  gateway_transaction_id : text
+  authorization_id : text
+  payment_method_token : text
+  error_code : text
+  error_message : text
+  created_at : timestamptz
+}
+OrderHeader "1" --> "0..*" PaymentTransaction
+
+' ---------- Shipments (partial allowed) ----------
+class Shipment {
+  +shipment_id : UUID <<PK>>
+  order_id : UUID <<FK>>
+  status : text ' Created/LabelGenerated/Shipped/Delivered/Cancelled
+  carrier_code : text
+  carrier_service : text
+  tracking_number : text
+  label_url : text
+  warehouse_id : UUID
+  package_count : int
+  shipped_at : timestamptz?
+  delivered_at : timestamptz?
+  created_at : timestamptz
+}
+OrderHeader "1" --> "0..*" Shipment
+
+class ShipmentItem {
+  +shipment_item_id : UUID <<PK>>
+  shipment_id : UUID <<FK>>
+  order_line_id : UUID <<FK>>
+  qty : numeric(12,3)
+}
+Shipment "1" --> "1..*" ShipmentItem
+OrderLine "1" --> "0..*" ShipmentItem
+
+' ---------- Invoicing (partial allowed) ----------
+class Invoice {
+  +invoice_id : UUID <<PK>>
+  order_id : UUID <<FK>>
+  invoice_number : text <<UQ>>
+  status : text ' Draft/Issued/Voided
+  currency : text
+  subtotal_amount : numeric(12,2)
+  tax_amount : numeric(12,2)
+  shipping_amount : numeric(12,2)
+  total_amount : numeric(12,2)
+  issued_at : timestamptz?
+}
+OrderHeader "1" --> "0..*" Invoice
+
+class InvoiceLine {
+  +invoice_line_id : UUID <<PK>>
+  invoice_id : UUID <<FK>>
+  order_line_id : UUID <<FK?>>
+  description : text
+  qty : numeric(12,3)
+  unit_price : numeric(12,2)
+  tax_amount : numeric(12,2)
+  line_total : numeric(12,2)
+}
+Invoice "1" --> "1..*" InvoiceLine
+OrderLine "1" --> "0..*" InvoiceLine
+
+' ---------- RMA ----------
+class Rma {
+  +rma_id : UUID <<PK>>
+  rma_number : text <<UQ>>
+  order_id : UUID <<FK>>
+  status : text ' Authorised/Received/Inspected/Completed/Cancelled/Expired
+  reason_code : text
+  issued_by : UUID
+  issued_at : timestamptz
+  expires_at : timestamptz?
+  return_tracking_number : text
+  notes : text
+}
+OrderHeader "1" --> "0..*" Rma
+
+class RmaLine {
+  +rma_line_id : UUID <<PK>>
+  rma_id : UUID <<FK>>
+  order_line_id : UUID <<FK?>>
+  product_variant_id : UUID
+  qty_authorised : numeric(12,3)
+  qty_received : numeric(12,3)
+  condition : text ' New/Opened/Used/Damaged/Defective
+  disposition : text ' Restock/Refurbish/Scrap/ReturnToVendor
+  refund_amount : numeric(12,2)
+  restock_fee : numeric(12,2)
+  notes : text
+}
+Rma "1" --> "1..*" RmaLine
+OrderLine "1" --> "0..*" RmaLine
+
+class RmaReceipt {
+  +rma_receipt_id : UUID <<PK>>
+  rma_id : UUID <<FK>>
+  received_at : timestamptz
+  received_by : UUID
+  reference_shipment_id : UUID <<FK?>>
+}
+Rma "1" --> "0..*" RmaReceipt
+Shipment "1" --> "0..*" RmaReceipt
+
+class RmaInspection {
+  +rma_inspection_id : UUID <<PK>>
+  rma_line_id : UUID <<FK>>
+  inspected_at : timestamptz
+  inspector_id : UUID
+  condition_found : text
+  disposition_final : text ' Restock/Refurbish/Scrap/ReturnToVendor
+  notes : text
+}
+RmaLine "1" --> "0..*" RmaInspection
+
+class Refund {
+  +refund_id : UUID <<PK>>
+  order_id : UUID <<FK>>
+  rma_id : UUID <<FK?>>
+  payment_id : UUID <<FK?>>
+  amount : numeric(12,2)
+  status : text ' Pending/Succeeded/Failed
+  method : text ' OriginalPayment/StoreCredit/Manual
+  processed_at : timestamptz?
+}
+OrderHeader "1" --> "0..*" Refund
+Rma "1" --> "0..*" Refund
+PaymentTransaction "1" --> "0..*" Refund
+
+' ---------- Audit ----------
+class OrderHistory {
+  +order_history_id : UUID <<PK>>
+  order_id : UUID <<FK>>
+  changed_at : timestamptz
+  changed_by : UUID
+  event_code : text
+  from_status : text
+  to_status : text
+  note : text
+}
+OrderHeader "1" --> "0..*" OrderHistory
+
+class RmaHistory {
+  +rma_history_id : UUID <<PK>>
+  rma_id : UUID <<FK>>
+  changed_at : timestamptz
+  changed_by : UUID
+  event_code : text
+  from_status : text
+  to_status : text
+  note : text
+}
+Rma "1" --> "0..*" RmaHistory
+
+@enduml

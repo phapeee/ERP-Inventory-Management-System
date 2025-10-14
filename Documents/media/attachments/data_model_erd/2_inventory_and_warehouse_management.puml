@@ -1,0 +1,310 @@
+@startuml
+title ERP – Inventory & Warehouse Management (IWM) – Baseline ERD
+hide methods
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  BorderColor #555
+}
+
+' --- Facilities ---
+class Warehouse {
+  +warehouse_id : UUID <<PK>>
+  code : text <<UQ>>
+  name : text
+  timezone : text
+  address_json : jsonb
+  capacity_cbm : numeric
+  is_3pl : bool
+  created_at : timestamptz
+}
+
+class Location {
+  +location_id : UUID <<PK>>
+  warehouse_id : UUID <<FK>>
+  zone : text
+  aisle : text
+  bin_code : text
+  type : text  ' picking, bulk, returns, staging, hazmat, crossdock
+  capacity_units : numeric
+  temperature_controlled : bool
+  hazardous_allowed : bool
+  is_active : bool
+  {unique} (warehouse_id, bin_code)
+}
+Warehouse "1" --> "1..*" Location
+
+class ExternalLocationMap {
+  +external_location_map_id : UUID <<PK>>
+  warehouse_id : UUID <<FK>>
+  location_id : UUID <<FK?>>
+  provider_code : text
+  provider_location_code : text
+  {unique} (provider_code, provider_location_code)
+}
+Warehouse "1" --> "0..*" ExternalLocationMap
+Location "0..1" --> "0..*" ExternalLocationMap
+
+' --- Product refs (from PIM) ---
+class ProductVariant {
+  +product_variant_id : UUID <<PK>>
+  variant_sku : text
+}
+
+' --- Lots & Serials ---
+class Lot {
+  +lot_id : UUID <<PK>>
+  product_variant_id : UUID <<FK>>
+  lot_number : text
+  expiration_date : date
+  received_at : timestamptz
+  vendor_id : UUID
+  {unique} (product_variant_id, lot_number)
+}
+ProductVariant "1" --> "0..*" Lot
+
+class Serial {
+  +serial_id : UUID <<PK>>
+  product_variant_id : UUID <<FK>>
+  serial_number : text
+  lot_id : UUID <<FK?>>
+  warranty_until : date
+  status : text  ' in_stock, shipped, scrapped
+  {unique} (product_variant_id, serial_number)
+}
+ProductVariant "1" --> "0..*" Serial
+Lot "0..1" --> "0..*" Serial
+
+' --- Inventory snapshot (per bucket) ---
+class InventoryItem {
+  +inventory_item_id : UUID <<PK>>
+  product_variant_id : UUID <<FK>>
+  warehouse_id : UUID <<FK>>
+  location_id : UUID <<FK>>
+  lot_id : UUID <<FK?>>
+  serial_id : UUID <<FK?>>
+  status : text  ' available, allocated, quarantined, damaged, hold
+  quantity : numeric
+  reorder_point : numeric?
+  safety_stock : numeric?
+  {unique} (product_variant_id, warehouse_id, location_id, lot_id?, serial_id?, status)
+}
+ProductVariant "1" --> "0..*" InventoryItem
+Warehouse "1" --> "0..*" InventoryItem
+Location "1" --> "0..*" InventoryItem
+Lot "0..1" --> "0..*" InventoryItem
+Serial "0..1" --> "0..*" InventoryItem
+
+' --- Transactions (append-only journal) ---
+class InventoryTransaction {
+  +inventory_transaction_id : UUID <<PK>>
+  trx_type : text  ' receipt, putaway, pick, ship, return, adjustment, transfer_out, transfer_in, cycle_count, scrap
+  product_variant_id : UUID <<FK>>
+  quantity : numeric
+  uom : text
+  from_warehouse_id : UUID <<FK?>>
+  from_location_id : UUID <<FK?>>
+  to_warehouse_id : UUID <<FK?>>
+  to_location_id : UUID <<FK?>>
+  lot_id : UUID <<FK?>>
+  serial_id : UUID <<FK?>>
+  fefo_key : date      ' copy of expiration_date for FEFO
+  reason : text
+  reference_type : text  ' PO, SO, ASN, COUNT, ADJ, SHIPMENT
+  reference_id : text
+  created_by : UUID
+  created_at : timestamptz
+}
+ProductVariant "1" --> "0..*" InventoryTransaction
+Location "0..1" --> "0..*" InventoryTransaction : from
+Location "0..1" --> "0..*" InventoryTransaction : to
+Lot "0..1" --> "0..*" InventoryTransaction
+Serial "0..1" --> "0..*" InventoryTransaction
+Warehouse "0..1" --> "0..*" InventoryTransaction : from
+Warehouse "0..1" --> "0..*" InventoryTransaction : to
+
+class TransferOrder {
+  +transfer_order_id : UUID <<PK>>
+  source_warehouse_id : UUID <<FK>>
+  destination_warehouse_id : UUID <<FK>>
+  status : text  ' created, in_transit, received, cancelled
+  created_at : timestamptz
+}
+Warehouse "1" --> "0..*" TransferOrder : source
+Warehouse "1" --> "0..*" TransferOrder : destination
+
+' --- Cycle counting ---
+class CycleCountTask {
+  +cycle_count_task_id : UUID <<PK>>
+  warehouse_id : UUID <<FK>>
+  schedule_bucket : text  ' A, B, C
+  created_at : timestamptz
+  status : text  ' pending, in_progress, completed, cancelled
+}
+Warehouse "1" --> "0..*" CycleCountTask
+
+class CycleCountLine {
+  +cycle_count_line_id : UUID <<PK>>
+  cycle_count_task_id : UUID <<FK>>
+  product_variant_id : UUID <<FK>>
+  location_id : UUID <<FK>>
+  lot_id : UUID <<FK?>>
+  expected_qty : numeric
+  counted_qty : numeric?
+  variance : numeric?
+  counted_by : UUID
+  counted_at : timestamptz?
+  {unique} (cycle_count_task_id, product_variant_id, location_id, lot_id?)
+}
+CycleCountTask "1" --> "1..*" CycleCountLine
+ProductVariant "1" --> "0..*" CycleCountLine
+Location "1" --> "0..*" CycleCountLine
+Lot "0..1" --> "0..*" CycleCountLine
+
+' --- Replenishment policy ---
+class ReorderPolicy {
+  +reorder_policy_id : UUID <<PK>>
+  product_variant_id : UUID <<FK>>
+  warehouse_id : UUID <<FK>>
+  safety_stock : numeric
+  reorder_point : numeric
+  reorder_qty : numeric?
+  lead_time_days : int?
+  {unique} (product_variant_id, warehouse_id)
+}
+ProductVariant "1" --> "0..*" ReorderPolicy
+Warehouse "1" --> "0..*" ReorderPolicy
+
+' --- ATP: Reservations & Expected Receipts ---
+class Reservation {
+  +reservation_id : UUID <<PK>>
+  product_variant_id : UUID <<FK>>
+  warehouse_id : UUID <<FK>>
+  location_id : UUID <<FK?>>
+  lot_id : UUID <<FK?>>
+  reference_type : text ' SO, WORKORDER, TRANSFER
+  reference_id : text
+  qty_reserved : numeric
+  created_at : timestamptz
+}
+class ExpectedReceipt {
+  +expected_receipt_id : UUID <<PK>>
+  product_variant_id : UUID <<FK>>
+  warehouse_id : UUID <<FK>>
+  expected_qty : numeric
+  expected_date : date
+  reference_type : text ' PO, RMA, TRANSFER
+  reference_id : text
+}
+ProductVariant "1" --> "0..*" Reservation
+Warehouse "1" --> "0..*" Reservation
+ProductVariant "1" --> "0..*" ExpectedReceipt
+Warehouse "1" --> "0..*" ExpectedReceipt
+Location "0..1" --> "0..*" Reservation
+Lot "0..1" --> "0..*" Reservation
+
+' --- Costing / Valuation ---
+class CostMethod {
+  +cost_method_id : UUID <<PK>>
+  product_variant_id : UUID <<FK>>
+  warehouse_id : UUID <<FK>>
+  method : text ' fifo, lifo, weighted_avg
+  {unique} (product_variant_id, warehouse_id)
+}
+class CostLayer {
+  +cost_layer_id : UUID <<PK>>
+  product_variant_id : UUID <<FK>>
+  warehouse_id : UUID <<FK>>
+  lot_id : UUID <<FK?>>
+  qty_in : numeric
+  qty_out : numeric
+  unit_cost : numeric(12,4)
+  currency : text
+  created_at : timestamptz
+}
+ProductVariant "1" --> "0..*" CostLayer
+Warehouse "1" --> "0..*" CostLayer
+Lot "0..1" --> "0..*" CostLayer
+ProductVariant "1" --> "0..1" CostMethod
+Warehouse "1" --> "0..1" CostMethod
+
+' --- Slotting & Recommendations ---
+class SlottingRule {
+  +slotting_rule_id : UUID <<PK>>
+  name : text
+  criteria_json : jsonb ' {\"abc\":\"A\",\"hazmat\":false}\n  target_zone : text\n  target_type : text ' picking/bulk\n  is_active : bool\n}
+class SlottingRecommendation {
+  +slotting_recommendation_id : UUID <<PK>>
+  product_variant_id : UUID <<FK>>
+  warehouse_id : UUID <<FK>>
+  recommended_location_id : UUID <<FK?>>
+  reason : text
+  created_at : timestamptz
+}
+ProductVariant "1" --> "0..*" SlottingRecommendation
+Warehouse "1" --> "0..*" SlottingRecommendation
+Location "0..1" --> "0..*" SlottingRecommendation
+
+' --- Receiving (ASN) & Tasks (Putaway/Pick) ---
+class ASN {
+  +asn_id : UUID <<PK>>
+  vendor_id : UUID
+  warehouse_id : UUID <<FK>>
+  status : text ' expected, received, closed, cancelled
+  eta : timestamptz
+  created_at : timestamptz
+}
+class ASNLine {
+  +asn_line_id : UUID <<PK>>
+  asn_id : UUID <<FK>>
+  product_variant_id : UUID <<FK>>
+  expected_qty : numeric
+  lot_number : text?
+  serials_json : jsonb?
+}
+Warehouse "1" --> "0..*" ASN
+ASN "1" --> "1..*" ASNLine
+ProductVariant "1" --> "0..*" ASNLine
+
+class PutawayTask {
+  +putaway_task_id : UUID <<PK>>
+  warehouse_id : UUID <<FK>>
+  from_location_id : UUID <<FK?>>
+  to_location_id : UUID <<FK?>>
+  product_variant_id : UUID <<FK>>
+  lot_id : UUID <<FK?>>
+  qty : numeric
+  status : text ' pending, in_progress, done
+  created_at : timestamptz
+}
+class PickTask {
+  +pick_task_id : UUID <<PK>>
+  warehouse_id : UUID <<FK>>
+  from_location_id : UUID <<FK?>>
+  product_variant_id : UUID <<FK>>
+  lot_id : UUID <<FK?>>
+  serial_id : UUID <<FK?>>
+  qty : numeric
+  fefo_required : bool
+  status : text ' pending, in_progress, done
+  reference_type : text ' SO, TRANSFER
+  reference_id : text
+  created_at : timestamptz
+}
+Warehouse "1" --> "0..*" PutawayTask
+Warehouse "1" --> "0..*" PickTask
+Location "0..1" --> "0..*" PutawayTask : from
+Location "0..1" --> "0..*" PutawayTask : to
+Location "0..1" --> "0..*" PickTask : from
+ProductVariant "1" --> "0..*" PutawayTask
+ProductVariant "1" --> "0..*" PickTask
+Lot "0..1" --> "0..*" PutawayTask
+Lot "0..1" --> "0..*" PickTask
+Serial "0..1" --> "0..*" PickTask
+
+' --- Outbox for domain events ---
+class OutboxEvent {
+  +outbox_event_id : UUID <<PK>>
+  topic : text  ' inventory.stock-received, ...\n  payload : jsonb\n  occurred_at : timestamptz\n  published_at : timestamptz?\n
+}
+@enduml

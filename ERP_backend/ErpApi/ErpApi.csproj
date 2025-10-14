@@ -52,6 +52,8 @@
     <ProjectReference Include="..\Modules\Accounting\Accounting.Presentation\Accounting.Presentation.csproj" />
     <ProjectReference Include="..\Modules\Operation\Operation.Infrastructure\Operation.Infrastructure.csproj" />
     <ProjectReference Include="..\Modules\Operation\Operation.Presentation\Operation.Presentation.csproj" />
+    <ProjectReference Include="..\Modules\Core\Core.Infrastructure\Core.Infrastructure.csproj" />
+    <ProjectReference Include="..\Modules\Core\Core.Presentation\Core.Presentation.csproj" />
   </ItemGroup>
 
 </Project>

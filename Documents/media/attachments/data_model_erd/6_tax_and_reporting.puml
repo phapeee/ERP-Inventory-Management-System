@@ -1,0 +1,225 @@
+@startuml
+title ERP – Tax Calculation & Compliance (Baseline ERD)
+
+hide methods
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  BorderColor #555
+}
+
+' -------- Provider & SLA ----------
+class TaxProvider {
+  +tax_provider_id : UUID <<PK>>
+  name : text <<UQ>>
+  base_url : text
+  target_uptime_99_99 : bool
+  target_latency_ms : int
+  is_active : bool
+}
+
+class TaxApiCall {
+  +tax_api_call_id : UUID <<PK>>
+  tax_provider_id : UUID <<FK>>
+  correlation_id : text
+  request_json : jsonb
+  response_json : jsonb?
+  status : enum(success,error,timeout)
+  http_status : int?
+  latency_ms : int?
+  called_at : timestamptz
+}
+TaxProvider "1" --> "0..*" TaxApiCall
+
+' -------- Jurisdictions & Rates ----------
+class TaxJurisdiction {
+  +tax_jurisdiction_id : UUID <<PK>>
+  country_code : text
+  state_code : text?
+  county_fips : text?
+  city_name : text?
+  district_code : text?
+  postal_code : text?
+  name : text
+  {unique} (country_code,state_code,county_fips,city_name,district_code,postal_code)
+}
+
+class TaxRateCache {
+  +tax_rate_cache_id : UUID <<PK>>
+  tax_jurisdiction_id : UUID <<FK>>
+  rate_total : numeric
+  rate_state : numeric?
+  rate_county : numeric?
+  rate_city : numeric?
+  rate_special : numeric?
+  source : text         ' provider/manual
+  valid_from : timestamptz
+  valid_to : timestamptz?
+  last_checked_at : timestamptz?
+}
+TaxJurisdiction "1" --> "0..*" TaxRateCache
+
+' -------- Taxability (product-level) ----------
+class TaxCode {
+  +tax_code_id : UUID <<PK>>
+  code : text <<UQ>>
+  description : text?
+  is_taxable : bool
+  is_hazardous : bool
+}
+
+class ProductTaxCode {
+  +product_id : UUID <<PK>>
+  +tax_code_id : UUID <<PK,FK>>
+  +valid_from : timestamptz <<PK>>
+  valid_to : timestamptz?
+}
+TaxCode "1" --> "0..*" ProductTaxCode
+
+' -------- Exemptions ----------
+class ExemptionCertificate {
+  +exemption_certificate_id : UUID <<PK>>
+  customer_id : UUID
+  certificate_number : text
+  jurisdiction_scope : text   ' e.g., state:NC
+  reason_code : text
+  issued_at : timestamptz
+  expires_at : timestamptz?
+  document_url : text?
+  created_at : timestamptz
+}
+
+' -------- Tax Transactions ----------
+class TaxTransaction {
+  +tax_transaction_id : UUID <<PK>>
+  order_id : UUID
+  order_number : text
+  customer_id : UUID
+  ship_to_addr_id : UUID
+  ship_from_addr_id : UUID
+  subtotal_taxable : numeric(14,2)
+  subtotal_nontaxable : numeric(14,2)
+  tax_amount_total : numeric(14,2)
+  exemption_applied : bool
+  exemption_certificate_id : UUID?
+  calculation_source : enum(live,cache,manual)
+  tax_provider_id : UUID?
+  tax_api_call_id : UUID?
+  computed_at : timestamptz
+  needs_review : bool
+  notes : text?
+}
+TaxProvider "1" --> "0..*" TaxTransaction
+TaxApiCall "1" --> "0..*" TaxTransaction
+ExemptionCertificate "1" --> "0..*" TaxTransaction
+
+class TaxTransactionLine {
+  +tax_transaction_line_id : UUID <<PK>>
+  tax_transaction_id : UUID <<FK>>
+  order_line_id : UUID
+  product_id : UUID?
+  quantity : numeric
+  line_subtotal : numeric(14,2)
+  taxable_amount : numeric(14,2)
+  tax_amount : numeric(14,2)
+  tax_code_id : UUID <<FK>>?
+  is_hazardous : bool
+}
+TaxTransaction "1" --> "1..*" TaxTransactionLine
+TaxCode "1" --> "0..*" TaxTransactionLine
+
+' Per-line jurisdiction breakdown (for filings/audit)
+class TaxLineComponent {
+  +tax_line_component_id : UUID <<PK>>
+  tax_transaction_line_id : UUID <<FK>>
+  tax_jurisdiction_id : UUID <<FK>>
+  component_type : enum(state,county,city,special)
+  rate : numeric
+  amount : numeric(14,2)
+}
+TaxTransactionLine "1" --> "1..*" TaxLineComponent
+TaxJurisdiction "1" --> "0..*" TaxLineComponent
+
+' Hazmat fee rules & assessments
+class HazmatFeeRule {
+  +hazmat_fee_rule_id : UUID <<PK>>
+  tax_jurisdiction_id : UUID <<FK>>
+  name : text
+  fee_type : text      ' per_order/per_item/per_weight/flat
+  amount_fixed : numeric(12,4)?
+  amount_per_unit : numeric(12,4)?
+  unit_of_measure : text?
+  conditions_json : jsonb?
+  valid_from : timestamptz
+  valid_to : timestamptz?
+}
+TaxJurisdiction "1" --> "0..*" HazmatFeeRule
+
+class HazmatFeeAssessment {
+  +hazmat_fee_assessment_id : UUID <<PK>>
+  tax_transaction_id : UUID <<FK>>
+  hazmat_fee_rule_id : UUID <<FK>>
+  tax_jurisdiction_id : UUID <<FK>>
+  assessed_amount : numeric(14,2)
+}
+TaxTransaction "1" --> "0..*" HazmatFeeAssessment
+HazmatFeeRule "1" --> "0..*" HazmatFeeAssessment
+TaxJurisdiction "1" --> "0..*" HazmatFeeAssessment
+
+' Exemption application record
+class ExemptionApplication {
+  +exemption_application_id : UUID <<PK>>
+  tax_transaction_id : UUID <<FK>>
+  exemption_certificate_id : UUID <<FK>>
+  applied_amount : numeric(14,2)?
+  applied_at : timestamptz
+}
+TaxTransaction "1" --> "0..*" ExemptionApplication
+ExemptionCertificate "1" --> "0..*" ExemptionApplication
+
+' -------- Filing & Reporting ----------
+class FilingPeriod {
+  +filing_period_id : UUID <<PK>>
+  tax_jurisdiction_id : UUID <<FK>>
+  frequency : enum(monthly,quarterly,annual)
+  period_start : date
+  period_end : date
+  due_date : date
+}
+TaxJurisdiction "1" --> "0..*" FilingPeriod
+
+class TaxReturn {
+  +tax_return_id : UUID <<PK>>
+  filing_period_id : UUID <<FK>>
+  status : enum(open,prepared,submitted,approved,rejected,amended)
+  prepared_at : timestamptz?
+  submitted_at : timestamptz?
+  approved_at : timestamptz?
+  confirmation_no : text?
+  export_url : text?
+}
+FilingPeriod "1" --> "0..*" TaxReturn
+
+class TaxReturnLine {
+  +tax_return_line_id : UUID <<PK>>
+  tax_return_id : UUID <<FK>>
+  component_type : enum(state,county,city,special)
+  taxable_sales : numeric(16,2)
+  nontaxable_sales : numeric(16,2)
+  tax_collected : numeric(16,2)
+  adjustments : numeric(16,2)
+}
+TaxReturn "1" --> "1..*" TaxReturnLine
+
+' -------- Reconciliation (cache fallback, invalid addr, etc.) ----------
+class ReconciliationTask {
+  +reconciliation_task_id : UUID <<PK>>
+  tax_transaction_id : UUID <<FK>>
+  reason : text 'api_timeout|cache_fallback|address_invalid'
+  status : enum(pending,replayed,resolved,dismissed)
+  created_at : timestamptz
+  resolved_at : timestamptz?
+}
+TaxTransaction "1" --> "0..*" ReconciliationTask
+
+@enduml

@@ -1,0 +1,201 @@
+@startuml
+title ERP – Top-Level Domain Overview ERD
+
+hide methods
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam class {
+  BackgroundColor White
+  BorderColor #555
+}
+
+package "Product Information Management" as PIM {
+  class Product {
+    +product_id : UUID <<PK>>
+    canonical_sku : text
+    name : text
+  }
+
+  class ProductVariant {
+    +product_variant_id : UUID <<PK>>
+    product_id : UUID <<FK>>
+    variant_sku : text
+  }
+}
+Product "1" --> "1..*" ProductVariant
+
+package "Orders & RMA" as ORD {
+  class SalesOrder {
+    +order_id : UUID <<PK>>
+    order_number : text <<UQ>>
+    status : text
+  }
+
+  class SalesOrderLine {
+    +order_line_id : UUID <<PK>>
+    order_id : UUID <<FK>>
+    product_variant_id : UUID <<FK>>
+    qty_ordered : numeric
+  }
+
+  class InventoryReservation {
+    +reservation_id : UUID <<PK>>
+    order_line_id : UUID <<FK>>
+    location_id : UUID <<FK?>>
+    qty_reserved : numeric
+  }
+
+  class Rma {
+    +rma_id : UUID <<PK>>
+    order_id : UUID <<FK>>
+    status : text
+  }
+}
+SalesOrder "1" --> "1..*" SalesOrderLine
+SalesOrderLine "1" --> "0..*" InventoryReservation
+SalesOrder "1" --> "0..*" Rma
+
+package "Inventory & Warehouse" as INV {
+  class Warehouse {
+    +warehouse_id : UUID <<PK>>
+    code : text <<UQ>>
+    name : text
+  }
+
+  class InventoryItem {
+    +inventory_item_id : UUID <<PK>>
+    product_variant_id : UUID <<FK>>
+    warehouse_id : UUID <<FK>>
+    qty_on_hand : numeric
+  }
+
+  class InventoryTransaction {
+    +inventory_transaction_id : UUID <<PK>>
+    product_variant_id : UUID <<FK>>
+    warehouse_id : UUID <<FK?>>
+    trx_type : text
+    quantity : numeric
+  }
+}
+Warehouse "1" --> "0..*" InventoryItem
+ProductVariant "1" --> "0..*" InventoryItem
+ProductVariant "1" --> "0..*" InventoryTransaction
+Warehouse "0..1" --> "0..*" InventoryTransaction
+
+package "Purchasing & Vendor Mgmt" as PUR {
+  class Vendor {
+    +vendor_id : UUID <<PK>>
+    code : text <<UQ>>
+    name : text
+  }
+
+  class PurchaseOrder {
+    +purchase_order_id : UUID <<PK>>
+    vendor_id : UUID <<FK>>
+    status : text
+    expected_delivery_date : date?
+  }
+
+  class PurchaseOrderLine {
+    +purchase_order_line_id : UUID <<PK>>
+    purchase_order_id : UUID <<FK>>
+    product_id : UUID <<FK>>
+    quantity_ordered : numeric
+  }
+
+  class Receipt {
+    +receipt_id : UUID <<PK>>
+    purchase_order_id : UUID <<FK>>
+    warehouse_id : UUID <<FK?>>
+    received_at : timestamptz
+  }
+
+  class VendorInvoice {
+    +vendor_invoice_id : UUID <<PK>>
+    vendor_id : UUID <<FK>>
+    purchase_order_id : UUID <<FK?>>
+    status : text
+  }
+}
+Vendor "1" --> "0..*" PurchaseOrder
+PurchaseOrder "1" --> "1..*" PurchaseOrderLine
+PurchaseOrder "1" --> "0..*" Receipt
+PurchaseOrder "1" --> "0..*" VendorInvoice
+Vendor "1" --> "0..*" VendorInvoice
+Warehouse "1" --> "0..*" Receipt
+Product "1" --> "0..*" PurchaseOrderLine
+
+package "Shipping & Logistics" as SHIP {
+  class Shipment {
+    +shipment_id : UUID <<PK>>
+    order_id : UUID <<FK>>
+    warehouse_id : UUID <<FK?>>
+    status : text
+  }
+}
+SalesOrder "1" --> "0..*" Shipment
+Warehouse "1" --> "0..*" Shipment
+
+package "Tax & Compliance" as TAX {
+  class TaxTransaction {
+    +tax_transaction_id : UUID <<PK>>
+    order_id : UUID <<FK>>
+    tax_amount_total : numeric
+    computed_at : timestamptz
+  }
+}
+SalesOrder "1" --> "0..*" TaxTransaction
+
+package "Accounting Sync" as ACC {
+  class JournalEntry {
+    +journal_entry_id : UUID <<PK>>
+    source_doc_type : text
+    source_doc_id : text
+    status : text
+  }
+}
+JournalEntry ..> SalesOrder : "order revenue"
+JournalEntry ..> PurchaseOrder : "PO accrual"
+JournalEntry ..> InventoryTransaction : "inventory costing"
+JournalEntry ..> VendorInvoice : "AP"
+
+package "Operational Analytics" as ANA {
+  class FactOrder {
+    +order_key : bigint <<PK>>
+    order_id : UUID
+    order_date_key : int <<FK>>
+    amount_total : numeric
+  }
+
+  class FactInventorySnapshot {
+    +snapshot_key : bigint <<PK>>
+    snapshot_date_key : int <<FK>>
+    product_key : bigint <<FK>>
+    warehouse_key : bigint <<FK>>
+    on_hand_qty : numeric
+  }
+
+  class FactPurchase {
+    +po_line_key : bigint <<PK>>
+    po_id : UUID
+    vendor_key : bigint <<FK>>
+    product_key : bigint <<FK>>
+    amount_cost : numeric
+  }
+}
+FactOrder ..> SalesOrder
+FactOrder ..> Product
+FactInventorySnapshot ..> InventoryItem
+FactInventorySnapshot ..> Warehouse
+FactPurchase ..> PurchaseOrder
+FactPurchase ..> Vendor
+FactPurchase ..> Product
+
+' Cross-module touch points highlighting supply/demand balancing
+InventoryReservation ..> Warehouse : allocates
+InventoryReservation ..> InventoryItem : holds_quantity
+Receipt ..> InventoryTransaction : receiving
+Shipment ..> InventoryTransaction : fulfillment
+TaxTransaction ..> JournalEntry : compliance_posting
+
+@enduml

@@ -1,0 +1,331 @@
+@startuml
+title ERP Operational Analytics & Alerts – Practical Baseline ERD
+
+hide methods
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  BorderColor #555
+}
+
+' =========================
+' A) GOVERNANCE / SECURITY
+' =========================
+class Persona {
+  +persona_id : UUID <<PK>>
+  name : text <<UQ>>          ' GM, Ops Manager, Purchasing Lead, CSR, Auditor
+  description : text
+}
+
+class UserRef {
+  +user_id : UUID <<PK>>
+  display_name : text
+  email : text
+  role_code : text             ' app role reference (read-only here)
+}
+
+class DashboardAccess {
+  +dashboard_id : UUID <<PK,FK>>
+  +persona_id  : UUID <<PK,FK>>
+  access_level : text          ' view, edit, admin
+}
+
+' =========================
+' B) DASHBOARDS & WIDGETS
+' =========================
+class Dashboard {
+  +dashboard_id : UUID <<PK>>
+  name : text
+  owner_user_id : UUID <<FK>>
+  layout_json : jsonb          ' grid positions, sizing
+  is_system : bool             ' shipped vs user-created
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+class WidgetDefinition {
+  +widget_def_id : UUID <<PK>>
+  kind : text                  ' kpi, timeseries, table, bar, pie
+  name : text
+  default_config : jsonb       ' visual defaults
+}
+
+class WidgetInstance {
+  +widget_id    : UUID <<PK>>
+  dashboard_id  : UUID <<FK>>
+  widget_def_id : UUID <<FK>>
+  title         : text
+  config_json   : jsonb        ' filters, fields, formatting
+  data_source_id: UUID <<FK>>
+  position      : int          ' sort/grid index
+}
+
+Dashboard "1" --> "1..*" WidgetInstance
+WidgetDefinition "1" --> "0..*" WidgetInstance
+UserRef "1" --> "0..*" Dashboard : owner
+Dashboard "1" --> "0..*" DashboardAccess
+Persona "1" --> "0..*" DashboardAccess
+
+' =========================
+' C) DATA SOURCES (QUERY/LAYER)
+' =========================
+class DataSource {
+  +data_source_id : UUID <<PK>>
+  name            : text
+  source_type     : text        ' view, materialized_view, sql, metric
+  object_name     : text        ' schema.view or metric key
+  query_sql       : text        ' when type=sql
+  parameters_json : jsonb       ' allowed params
+  cache_ttl_sec   : int?
+}
+
+class KPI_Definition {
+  +kpi_key : text <<PK>>        ' e.g., sales_revenue, order_to_ship_days
+  title   : text
+  description : text
+  aggregation_sql : text        ' returns (kpi_key, ts, value, dims...)
+  refresh_policy : text         ' schedule hint
+}
+
+DataSource "0..*" --> "0..1" KPI_Definition : when source_type='metric'
+
+' =========================
+' D) ALERTS
+' =========================
+class AlertRule {
+  +alert_rule_id : UUID <<PK>>
+  name : text
+  kpi_key : text <<FK>>
+  condition_expr : text         ' e.g., value < :threshold AND dim='XYZ'
+  threshold_json : jsonb        ' { "threshold": 0.95, "window":"7d" }
+  is_enabled : bool
+  severity : text               ' info, warning, critical
+  check_cron : text             ' */5 * * * *
+  owner_user_id : UUID <<FK>>
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+class AlertTarget {
+  +alert_rule_id : UUID <<PK,FK>>
+  +target_type  : text <<PK>>   ' user, persona, email, webhook, sms
+  +target_ref   : text <<PK>>   ' user_id / persona_id / address / url
+}
+
+class AlertLog {
+  +alert_log_id : UUID <<PK>>
+  alert_rule_id : UUID <<FK>>
+  occurred_at   : timestamptz
+  payload_json  : jsonb          ' evaluated row(s)
+  message       : text
+  severity      : text
+  ack_user_id   : UUID <<FK>>?
+  acked_at      : timestamptz?
+}
+
+class NotificationAttempt {
+  +attempt_id   : UUID <<PK>>
+  alert_log_id  : UUID <<FK>>
+  channel       : text           ' email, sms, inapp, webhook
+  status        : text           ' sent, failed
+  response_code : text?
+  error_message : text?
+  sent_at       : timestamptz
+  retried_count : int
+}
+
+KPI_Definition "1" --> "0..*" AlertRule
+UserRef "1" --> "0..*" AlertRule : owner
+AlertRule "1" --> "0..*" AlertTarget
+AlertRule "1" --> "0..*" AlertLog
+UserRef "1" --> "0..*" AlertLog : acked_by
+AlertLog "1" --> "0..*" NotificationAttempt
+
+' =========================
+' E) AD-HOC REPORTS
+' =========================
+class ReportDefinition {
+  +report_id : UUID <<PK>>
+  name : text
+  description : text
+  query_sql : text              ' parameterized
+  parameters_json : jsonb
+  owner_user_id : UUID <<FK>>
+  is_public : bool
+  created_at : timestamptz
+  updated_at : timestamptz
+}
+
+class ReportRun {
+  +run_id : UUID <<PK>>
+  report_id : UUID <<FK>>
+  requested_by : UUID <<FK>>
+  requested_at : timestamptz
+  status : text                 ' queued,running,done,failed
+  params_json : jsonb
+  row_count : bigint?
+  elapsed_ms : int?
+  error_message : text?
+  result_uri : text?            ' link to CSV/PDF
+  format : text                 ' csv,pdf
+}
+
+ReportDefinition "1" --> "0..*" ReportRun
+UserRef "1" --> "0..*" ReportDefinition : owner
+UserRef "1" --> "0..*" ReportRun : requested_by
+
+' =========================
+' F) ELT / PIPELINE CONTROL (REPORTING STORE)
+' =========================
+class IngestedEvent {
+  +event_id : UUID <<PK>>
+  event_name : text            ' orders.order_shipped
+  partition_key : text
+  payload_json : jsonb
+  received_at : timestamptz
+  processed : bool
+}
+
+class TransformJob {
+  +job_id : UUID <<PK>>
+  name : text <<UQ>>           ' load_dim_product, build_fact_order
+  schedule_cron : text
+  is_enabled : bool
+  last_run_at : timestamptz?
+}
+
+class TransformRun {
+  +run_id : UUID <<PK>>
+  job_id : UUID <<FK>>
+  started_at : timestamptz
+  finished_at : timestamptz?
+  status : text                ' success, failed
+  rows_in  : bigint?
+  rows_out : bigint?
+  error_message : text?
+}
+
+TransformJob "1" --> "0..*" TransformRun
+
+' =========================
+' G) STAR SCHEMA (LEAN)
+' =========================
+class DimDate {
+  +date_key : int <<PK>>       ' 20251013
+  date : date
+  yyyy : int
+  mm : int
+  dd : int
+  week : int
+  month_name : text
+  quarter : int
+  is_weekend : bool
+}
+
+class DimProduct {
+  +product_key : bigint <<PK>>
+  product_id : UUID          ' from OLTP
+  canonical_sku : text
+  brand_name : text
+  category_path : text
+}
+
+class DimCustomer {
+  +customer_key : bigint <<PK>>
+  customer_id : UUID
+  name : text
+  segment : text
+  region : text
+}
+
+class DimVendor {
+  +vendor_key : bigint <<PK>>
+  vendor_id : UUID
+  vendor_name : text
+  region : text
+}
+
+class DimWarehouse {
+  +warehouse_key : bigint <<PK>>
+  warehouse_id : UUID
+  name : text
+  region : text
+}
+
+class DimChannel {
+  +channel_key : bigint <<PK>>
+  channel_code : text
+  channel_name : text
+}
+
+' ---- Facts (additive/semi-additive where sensible)
+class FactOrder {
+  +order_key : bigint <<PK>>
+  order_id : UUID
+  order_date_key : int  <<FK>> ' DimDate
+  customer_key : bigint <<FK>>
+  channel_key  : bigint <<FK>>
+  product_key  : bigint <<FK>>
+  qty_ordered  : numeric(18,3)
+  amount_subtotal : numeric(18,2)
+  amount_tax      : numeric(18,2)
+  amount_shipping : numeric(18,2)
+  amount_total    : numeric(18,2)
+}
+
+class FactShipment {
+  +shipment_key : bigint <<PK>>
+  shipment_id : UUID
+  ship_date_key : int <<FK>>
+  order_key : bigint <<FK>>
+  product_key : bigint <<FK>>
+  qty_shipped : numeric(18,3)
+  days_order_to_ship : numeric(10,2)
+  shipping_cost : numeric(18,2)
+}
+
+class FactInventorySnapshot {
+  +snapshot_key : bigint <<PK>>
+  snapshot_date_key : int <<FK>>
+  product_key : bigint <<FK>>
+  warehouse_key : bigint <<FK>>
+  on_hand_qty : numeric(18,3)
+  allocated_qty : numeric(18,3)
+  available_qty : numeric(18,3)
+  inventory_value : numeric(18,2)  ' using chosen valuation
+}
+
+class FactPurchase {
+  +po_line_key : bigint <<PK>>
+  po_id : UUID
+  vendor_key : bigint <<FK>>
+  product_key : bigint <<FK>>
+  order_date_key : int <<FK>>
+  receive_date_key : int <<FK>>
+  qty_ordered : numeric(18,3)
+  qty_received : numeric(18,3)
+  unit_cost : numeric(18,4)
+  amount_cost : numeric(18,2)
+  lead_time_days : numeric(10,2)
+}
+
+' Fact → Dim relationships
+FactOrder "0..*" --> "1" DimDate : order_date_key
+FactOrder "0..*" --> "1" DimCustomer
+FactOrder "0..*" --> "1" DimChannel
+FactOrder "0..*" --> "1" DimProduct
+
+FactShipment "0..*" --> "1" DimDate : ship_date_key
+FactShipment "0..*" --> "1" FactOrder
+FactShipment "0..*" --> "1" DimProduct
+
+FactInventorySnapshot "0..*" --> "1" DimDate : snapshot_date_key
+FactInventorySnapshot "0..*" --> "1" DimProduct
+FactInventorySnapshot "0..*" --> "1" DimWarehouse
+
+FactPurchase "0..*" --> "1" DimVendor
+FactPurchase "0..*" --> "1" DimProduct
+FactPurchase "0..*" --> "1" DimDate : order_date_key
+FactPurchase "0..*" --> "1" DimDate : receive_date_key
+
+@enduml

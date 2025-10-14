@@ -5,7 +5,7 @@
 
 The PIM module is the **central hub** for storing and governing all
 product‑related data across the organisation. It provides a unified
-repository for over 12 000 SKUs, including finished goods, kits/bundles,
+repository for over 12,000 SKUs, including finished goods, kits/bundles,
 variants and hazardous products. PIM supports multi‑channel publishing
 (web store, Amazon, POS, B2B portal) and ensures that product data is
 consistent, complete and up to date.

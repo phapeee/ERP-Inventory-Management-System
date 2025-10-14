@@ -1,0 +1,252 @@
+@startuml
+title ERP PIM – Core ERD (Practical Baseline)
+
+hide methods
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  BorderColor #555
+}
+
+' ---------- Reference/lookup ----------
+class Brand {
+  +brand_id : UUID <<PK>>
+  name : text <<UQ>>
+}
+
+class TaxCategory {
+  +tax_category_id : UUID <<PK>>
+  code : text <<UQ>>
+  description : text
+}
+
+class Uom {
+  +uom_id : UUID <<PK>>
+  code : text <<UQ>>
+  name : text
+}
+
+' ---------- Core product identity ----------
+class Product {
+  +product_id : UUID <<PK>>
+  canonical_sku : text <<UQ>>
+  name : text
+  brand_id : UUID <<FK>>
+  tax_category_id : UUID <<FK>>
+  default_uom_id : UUID <<FK>>
+  lifecycle_status : text
+  created_at : timestamptz
+}
+Brand "1" --> "0..*" Product
+TaxCategory "1" --> "0..*" Product
+Uom "1" --> "0..*" Product
+
+' ---------- Variants & options ----------
+class ProductVariant {
+  +product_variant_id : UUID <<PK>>
+  product_id : UUID <<FK>>
+  variant_sku : text <<UQ>>
+  gtin : text
+  is_default : bool
+  created_at : timestamptz
+}
+Product "1" --> "1..*" ProductVariant
+
+class Option {
+  +option_id : UUID <<PK>>
+  name : text
+}
+class OptionValue {
+  +option_value_id : UUID <<PK>>
+  option_id : UUID <<FK>>
+  value : text
+}
+Option "1" --> "1..*" OptionValue
+
+class ProductOptionValue {
+  +product_variant_id : UUID <<PK,FK>>
+  +option_value_id : UUID <<PK,FK>>
+}
+ProductVariant "1" --> "0..*" ProductOptionValue
+OptionValue "1" --> "0..*" ProductOptionValue
+
+' ---------- Attributes (typed) ----------
+class Attribute {
+  +attribute_id : UUID <<PK>>
+  code : text <<UQ>>
+  data_type : text
+  unit_hint : text
+}
+class AttributeSet {
+  +attribute_set_id : UUID <<PK>>
+  name : text <<UQ>>
+}
+class AttributeSetMember {
+  +attribute_set_id : UUID <<PK,FK>>
+  +attribute_id : UUID <<PK,FK>>
+  is_required : bool
+}
+AttributeSet "1" --> "1..*" AttributeSetMember
+Attribute "1" --> "0..*" AttributeSetMember
+
+class ProductAttributeValue {
+  +product_variant_id : UUID <<PK,FK>>
+  +attribute_id : UUID <<PK,FK>>
+  value_text : text
+  value_number : numeric
+  value_bool : bool
+  value_json : jsonb
+}
+ProductVariant "1" --> "0..*" ProductAttributeValue
+Attribute "1" --> "0..*" ProductAttributeValue
+
+' ---------- Taxonomy ----------
+class Category {
+  +category_id : UUID <<PK>>
+  parent_id : UUID <<FK?>>
+  slug : text <<UQ>>
+  name : text
+  sort_order : int
+}
+Category "0..1" --> "0..*" Category : parent
+
+class CategoryAssignment {
+  +product_id : UUID <<PK,FK>>
+  +category_id : UUID <<PK,FK>>
+  is_primary : bool
+}
+Product "1" --> "0..*" CategoryAssignment
+Category "1" --> "0..*" CategoryAssignment
+
+' ---------- Identifiers (temporal) ----------
+class ProductIdentifier {
+  +product_identifier_id : UUID <<PK>>
+  product_id : UUID <<FK>>
+  id_type : text
+  value : text
+  valid_from : timestamptz
+  valid_to : timestamptz?
+}
+Product "1" --> "0..*" ProductIdentifier
+
+' ---------- Channels & Listings ----------
+class Channel {
+  +channel_id : UUID <<PK>>
+  code : text <<UQ>>
+  name : text
+}
+class ChannelListing {
+  +channel_listing_id : UUID <<PK>>
+  channel_id : UUID <<FK>>
+  product_variant_id : UUID <<FK>>
+  channel_sku : text
+  status : text
+  listed_at : timestamptz?
+  delisted_at : timestamptz?
+  {unique} (channel_id, product_variant_id)
+}
+Channel "1" --> "0..*" ChannelListing
+ProductVariant "1" --> "0..*" ChannelListing
+
+' ---------- Localized content (temporal) ----------
+class ProductContent {
+  +product_content_id : UUID <<PK>>
+  product_id : UUID <<FK>>
+  locale : text
+  channel_code : text
+  title : text
+  short_description : text?
+  long_description : text?
+  seo_title : text?
+  seo_description : text?
+  format : text
+  valid_from : timestamptz
+  valid_to : timestamptz?
+  version : int
+  {unique} (product_id, locale, channel_code, valid_from)
+}
+Product "1" --> "0..*" ProductContent
+
+' ---------- Media ----------
+class MediaAsset {
+  +media_asset_id : UUID <<PK>>
+  url : text
+  kind : text
+  mime_type : text
+  width : int?
+  height : int?
+  size_bytes : bigint?
+  checksum_sha256 : text?
+}
+class ProductMedia {
+  +product_media_id : UUID <<PK>>
+  product_id : UUID <<FK>>
+  media_asset_id : UUID <<FK>>
+  locale : text?
+  channel_code : text?
+  alt_text : text?
+  sort_order : int
+  valid_from : timestamptz
+  valid_to : timestamptz?
+}
+Product "1" --> "0..*" ProductMedia
+MediaAsset "1" --> "0..*" ProductMedia
+
+' ---------- Price books (temporal) ----------
+class PriceBook {
+  +price_book_id : UUID <<PK>>
+  name : text
+  currency : text
+  channel_id : UUID <<FK?>>
+  customer_segment : text?
+}
+class PriceBookEntry {
+  +price_book_entry_id : UUID <<PK>>
+  price_book_id : UUID <<FK>>
+  product_variant_id : UUID <<FK>>
+  list_price : numeric(12,2)
+  min_price : numeric(12,2)?
+  valid_from : timestamptz
+  valid_to : timestamptz?
+  {unique} (price_book_id, product_variant_id, valid_from)
+}
+PriceBook "1" --> "1..*" PriceBookEntry
+ProductVariant "1" --> "0..*" PriceBookEntry
+Channel "1" --> "0..*" PriceBook
+
+' ---------- Vendors ----------
+class Vendor {
+  +vendor_id : UUID <<PK>>
+  name : text <<UQ>>
+  code : text <<UQ>>
+}
+class VendorProduct {
+  +vendor_product_id : UUID <<PK>>
+  vendor_id : UUID <<FK>>
+  product_id : UUID <<FK>>
+  vendor_sku : text
+  lead_time_days : int?
+  moq : int?
+  pack_size : int?
+  last_cost : numeric(12,4)?
+  currency : text?
+  {unique} (vendor_id, product_id)
+}
+Vendor "1" --> "0..*" VendorProduct
+Product "1" --> "0..*" VendorProduct
+
+' ---------- Bundles/Kits ----------
+class Bundle {
+  +bundle_id : UUID <<PK>>
+  product_id : UUID <<FK>>  ' bundle is also a product
+}
+class BundleItem {
+  +bundle_id : UUID <<PK,FK>>
+  +component_variant_id : UUID <<PK,FK>>
+  quantity : numeric(12,3)
+}
+Bundle "1" --> "1..*" BundleItem
+ProductVariant "1" --> "0..*" BundleItem : component_variant
+Product "1" --> "0..1" Bundle
+
+@enduml

@@ -1,0 +1,336 @@
+@startuml
+title ERP – Purchasing & Vendor Management (Baseline ERD)
+
+hide methods
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  BorderColor #555
+}
+
+' ===== Vendors & Compliance =====
+class Vendor {
+  +vendor_id : UUID <<PK>>
+  code : text <<UQ>>
+  name : text
+  status : text  ' active/on_hold/inactive
+  payment_terms : text
+  currency : text
+  created_at : timestamptz
+}
+
+class VendorAddress {
+  +vendor_address_id : UUID <<PK>>
+  vendor_id : UUID <<FK>>
+  kind : text  ' remit_to/ordering/HQ/other
+  line1 : text
+  line2 : text?
+  city : text?
+  region : text?
+  postal_code : text?
+  country : text
+  is_default : bool
+}
+
+class VendorContact {
+  +vendor_contact_id : UUID <<PK>>
+  vendor_id : UUID <<FK>>
+  name : text
+  email : text?
+  phone : text?
+  role : text?
+  is_primary : bool
+}
+
+class VendorAgreement {
+  +vendor_agreement_id : UUID <<PK>>
+  vendor_id : UUID <<FK>>
+  agreement_type : text  ' w9/hazmat/msa/nda
+  doc_url : text?
+  valid_from : timestamptz
+  valid_to : timestamptz?
+}
+
+Vendor "1" --> "0..*" VendorAddress
+Vendor "1" --> "0..*" VendorContact
+Vendor "1" --> "0..*" VendorAgreement
+
+' ===== Vendor Items (lead times, MOQ, pricing) =====
+class VendorItem {
+  +vendor_item_id : UUID <<PK>>
+  vendor_id : UUID <<FK>>
+  product_id : UUID <<FK>>       ' PIM.Product
+  product_variant_id : UUID <<FK?>> ' optional
+  vendor_sku : text
+  uom : text
+  pack_size : int?
+  moq : int?
+  lead_time_days : int?
+}
+
+class VendorItemPrice {
+  +vendor_item_price_id : UUID <<PK>>
+  vendor_item_id : UUID <<FK>>
+  currency : text
+  unit_cost : numeric(12,4)
+  valid_from : timestamptz
+  valid_to : timestamptz?
+}
+
+Vendor "1" --> "0..*" VendorItem
+VendorItem "1" --> "1..*" VendorItemPrice
+
+' ===== Requisitions & Approvals =====
+class Requisition {
+  +requisition_id : UUID <<PK>>
+  requested_by : UUID
+  department : text?
+  needed_by : date?
+  status : text  ' draft/pending_approval/approved/rejected/converted/cancelled
+  created_at : timestamptz
+}
+
+class RequisitionLine {
+  +requisition_line_id : UUID <<PK>>
+  requisition_id : UUID <<FK>>
+  product_id : UUID <<FK>>
+  product_variant_id : UUID <<FK?>> 
+  description : text?
+  quantity : numeric(14,3)
+  uom : text?
+  preferred_vendor_id : UUID <<FK?>>
+  cost_center : text?
+  needed_by : date?
+}
+
+class RequisitionApproval {
+  +requisition_approval_id : UUID <<PK>>
+  requisition_id : UUID <<FK>>
+  approver_id : UUID
+  decision : text ' pending/approved/rejected
+  decided_at : timestamptz?
+  note : text?
+}
+
+Requisition "1" --> "1..*" RequisitionLine
+Requisition "1" --> "0..*" RequisitionApproval
+Vendor "1" --> "0..*" RequisitionLine : preferred_vendor
+
+' ===== RFQ → Invitations → Responses =====
+class Rfq {
+  +rfq_id : UUID <<PK>>
+  created_by : UUID
+  due_date : date?
+  status : text ' draft/sent/partially_responded/closed
+  created_at : timestamptz
+}
+
+class RfqLine {
+  +rfq_line_id : UUID <<PK>>
+  rfq_id : UUID <<FK>>
+  product_id : UUID <<FK>>
+  product_variant_id : UUID <<FK?>>
+  quantity : numeric(14,3)
+  uom : text?
+  notes : text?
+  linked_requisition_line_id : UUID <<FK?>>
+}
+
+class RfqInvitation {
+  +rfq_invitation_id : UUID <<PK>>
+  rfq_id : UUID <<FK>>
+  vendor_id : UUID <<FK>>
+  sent_at : timestamptz?
+  status : text ' invited/declined/responded
+  {unique} (rfq_id, vendor_id)
+}
+
+class RfqResponse {
+  +rfq_response_id : UUID <<PK>>
+  rfq_invitation_id : UUID <<FK>>
+  responded_at : timestamptz?
+  overall_notes : text?
+}
+
+class RfqResponseLine {
+  +rfq_response_line_id : UUID <<PK>>
+  rfq_response_id : UUID <<FK>>
+  rfq_line_id : UUID <<FK>>
+  currency : text
+  unit_cost : numeric(12,4)
+  lead_time_days : int?
+  min_order_qty : int?
+  is_awarded : bool
+}
+
+Rfq "1" --> "1..*" RfqLine
+Rfq "1" --> "0..*" RfqInvitation
+Vendor "1" --> "0..*" RfqInvitation
+RfqInvitation "1" --> "0..1" RfqResponse
+RfqResponse "1" --> "1..*" RfqResponseLine
+RfqLine "1" --> "0..*" RfqResponseLine
+
+' ===== Purchase Orders, Approvals & Comms =====
+class PurchaseOrder {
+  +purchase_order_id : UUID <<PK>>
+  po_number : text <<UQ>>
+  vendor_id : UUID <<FK>>
+  bill_to_address_id : UUID <<FK?>>
+  ship_to_location_id : UUID <<FK?>>  ' Inventory.Warehouse/Location
+  dropship : bool
+  customer_id : UUID <<FK?>>          ' if dropship
+  incoterms : text?
+  freight_terms : text?
+  payment_terms : text?
+  currency : text
+  status : text ' draft/pending_approval/approved/sent/acknowledged/in_transit/partially_received/received/closed/cancelled
+  expected_delivery_date : date?
+  subtotal : numeric(14,2)
+  tax_total : numeric(14,2)
+  freight_total : numeric(14,2)
+  grand_total : numeric(14,2)
+  created_by : UUID
+  created_at : timestamptz
+}
+
+class PurchaseOrderLine {
+  +purchase_order_line_id : UUID <<PK>>
+  purchase_order_id : UUID <<FK>>
+  line_no : int
+  product_id : UUID <<FK>>
+  product_variant_id : UUID <<FK?>>
+  description : text?
+  quantity_ordered : numeric(14,3)
+  uom : text?
+  unit_price : numeric(12,4)
+  line_total : numeric(14,2)
+  expected_ship_date : date?
+  expected_arrival_date : date?
+  cost_center : text?
+  {unique} (purchase_order_id, line_no)
+}
+
+class PurchaseOrderApproval {
+  +purchase_order_approval_id : UUID <<PK>>
+  purchase_order_id : UUID <<FK>>
+  approver_id : UUID
+  decision : text ' pending/approved/rejected
+  decided_at : timestamptz?
+  note : text?
+}
+
+class PurchaseOrderComm {
+  +purchase_order_comm_id : UUID <<PK>>
+  purchase_order_id : UUID <<FK>>
+  channel : text ' email/edi/portal/other
+  sent_at : timestamptz?
+  acknowledged_at : timestamptz?
+  message_id : text?
+  status : text?
+}
+
+Vendor "1" --> "0..*" PurchaseOrder
+PurchaseOrder "1" --> "1..*" PurchaseOrderLine
+PurchaseOrder "1" --> "0..*" PurchaseOrderApproval
+PurchaseOrder "1" --> "0..*" PurchaseOrderComm
+
+' ===== Receiving =====
+class Receipt {
+  +receipt_id : UUID <<PK>>
+  purchase_order_id : UUID <<FK>>
+  received_at : timestamptz
+  warehouse_id : UUID <<FK?>>
+  received_by : UUID
+}
+
+class ReceiptLine {
+  +receipt_line_id : UUID <<PK>>
+  receipt_id : UUID <<FK>>
+  purchase_order_line_id : UUID <<FK>>
+  quantity_received : numeric(14,3)
+  quantity_damaged : numeric(14,3)
+  quality_status : text ' accepted/rejected/hold
+  lot_number : text?
+  serial_number : text?
+}
+
+PurchaseOrder "1" --> "0..*" Receipt
+Receipt "1" --> "1..*" ReceiptLine
+PurchaseOrderLine "1" --> "0..*" ReceiptLine
+
+' ===== AP Invoices & 3-way Match =====
+class VendorInvoice {
+  +vendor_invoice_id : UUID <<PK>>
+  vendor_id : UUID <<FK>>
+  invoice_number : text
+  invoice_date : date
+  currency : text
+  status : text ' unmatched/partially_matched/matched/paid/cancelled
+  subtotal : numeric(14,2)
+  tax_total : numeric(14,2)
+  freight_total : numeric(14,2)
+  grand_total : numeric(14,2)
+  received_at : timestamptz
+  {unique} (vendor_id, invoice_number)
+}
+
+class VendorInvoiceLine {
+  +vendor_invoice_line_id : UUID <<PK>>
+  vendor_invoice_id : UUID <<FK>>
+  purchase_order_line_id : UUID <<FK?>>
+  description : text?
+  quantity_invoiced : numeric(14,3)?
+  unit_price : numeric(12,4)?
+  line_total : numeric(14,2)?
+}
+
+class MatchingException {
+  +matching_exception_id : UUID <<PK>>
+  vendor_invoice_id : UUID <<FK>>
+  purchase_order_id : UUID <<FK?>>
+  purchase_order_line_id : UUID <<FK?>>
+  receipt_line_id : UUID <<FK?>>
+  kind : text ' qty_variance/price_variance/tax_variance/other
+  details : text?
+  created_at : timestamptz
+  resolved : bool
+  resolved_at : timestamptz?
+  resolution_note : text?
+}
+
+Vendor "1" --> "0..*" VendorInvoice
+VendorInvoice "1" --> "1..*" VendorInvoiceLine
+VendorInvoice "1" --> "0..*" MatchingException
+PurchaseOrder "1" --> "0..*" MatchingException
+PurchaseOrderLine "1" --> "0..*" VendorInvoiceLine
+ReceiptLine "1" --> "0..*" MatchingException
+
+' ===== Vendor performance / scorecards =====
+class VendorScorecardPeriod {
+  +vendor_scorecard_period_id : UUID <<PK>>
+  vendor_id : UUID <<FK>>
+  period_start : date
+  period_end : date
+  on_time_rate : numeric(5,2)
+  quality_defect_rate : numeric(5,2)
+  fill_rate : numeric(5,2)
+  avg_lead_time_days : numeric(7,2)
+  price_variance_rate : numeric(6,2)
+  composite_score : numeric(6,2)
+  {unique} (vendor_id, period_start, period_end)
+}
+Vendor "1" --> "0..*" VendorScorecardPeriod
+
+' ===== Events / Outbox for integrations =====
+class PurchasingOutboxEvent {
+  +outbox_event_id : UUID <<PK>>
+  aggregate_type : text
+  aggregate_id : UUID
+  event_type : text
+  payload : jsonb
+  occurred_at : timestamptz
+  published_at : timestamptz?
+  status : text ' pending/published/failed
+}
+
+@enduml

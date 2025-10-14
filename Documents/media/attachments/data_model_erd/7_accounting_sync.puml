@@ -1,0 +1,211 @@
+@startuml
+title ERP – Accounting Sync (Practical Baseline ERD)
+hide methods
+skinparam linetype ortho
+skinparam class {
+  BackgroundColor White
+  BorderColor #444
+}
+
+' ------ External systems & adapters ------
+class ExternalSystem {
+  +external_system_id : UUID <<PK>>
+  code : text <<UQ>>   ' quickbooks, netsuite
+  name : text
+  api_base_url : text
+  is_active : bool
+}
+
+class AdapterConfig {
+  +adapter_config_id : UUID <<PK>>
+  external_system_id : UUID <<FK>>
+  environment : text   ' prod/sandbox
+  company_id : text
+  secret_ref : text
+  {unique} (external_system_id, environment)
+}
+ExternalSystem "1" --> "0..*" AdapterConfig
+
+' ------ Chart of Accounts & dimensions ------
+class LedgerAccount {
+  +account_id : UUID <<PK>>
+  code : text <<UQ>>
+  name : text
+  account_type : text ' asset/liability/equity/revenue/expense/contra
+  parent_id : UUID <<FK?>> 
+  is_posting : bool
+  is_active : bool
+}
+LedgerAccount "0..1" --> "0..*" LedgerAccount : parent
+
+class CostCenter {
+  +cost_center_id : UUID <<PK>>
+  code : text <<UQ>>
+  name : text
+}
+class LocationDim {
+  +location_id : UUID <<PK>>
+  code : text <<UQ>>
+  name : text
+}
+class ProjectDim {
+  +project_id : UUID <<PK>>
+  code : text <<UQ>>
+  name : text
+}
+
+' ------ Posting Rules (GL mappings; effective-dated) ------
+class PostingRule {
+  +posting_rule_id : UUID <<PK>>
+  name : text
+  source_module : text   ' orders/purchasing/inventory
+  event_type : text      ' order-shipped, po-received, etc.
+  transaction_type : text?
+  product_category_id : UUID?   ' from PIM taxonomy
+  location_id : UUID <<FK?>> 
+  cost_center_id : UUID <<FK?>>
+  account_dr_id : UUID <<FK>>
+  account_cr_id : UUID <<FK>>
+  priority : int
+  valid_from : timestamptz
+  valid_to : timestamptz?
+  valid_during : tstzrange
+  is_active : bool
+}
+LedgerAccount "1" --> "0..*" PostingRule : debit
+LedgerAccount "1" --> "0..*" PostingRule : credit
+LocationDim "1" --> "0..*" PostingRule
+CostCenter "1" --> "0..*" PostingRule
+
+' ------ Journals (header/lines) ------
+class JournalEntry {
+  +journal_entry_id : UUID <<PK>>
+  batch_no : text
+  journal_no : text <<UQ>>
+  journal_date : date
+  description : text
+  currency : text
+  fx_rate : numeric(18,8)
+  source_system : text ' ERP / external
+  source_doc_type : text
+  source_doc_id : text
+  status : text ' draft/approved/posted/void
+  approved_by : text
+  approved_at : timestamptz?
+  posted_at : timestamptz?
+  external_system_id : UUID <<FK?>>
+  external_posted_id : text?
+}
+ExternalSystem "1" --> "0..*" JournalEntry
+
+class JournalLine {
+  +journal_line_id : UUID <<PK>>
+  journal_entry_id : UUID <<FK>>
+  line_no : int
+  account_id : UUID <<FK>>
+  debit : numeric(18,4)
+  credit : numeric(18,4)
+  currency : text
+  fx_rate : numeric(18,8)?
+  base_amount : numeric(18,4)?
+  cost_center_id : UUID <<FK?>>
+  location_id : UUID <<FK?>>
+  project_id : UUID <<FK?>>
+  product_id : UUID?          ' link to PIM if needed
+  memo : text?
+  ref_id : text?
+  {unique} (journal_entry_id, line_no)
+}
+JournalEntry "1" --> "1..*" JournalLine
+LedgerAccount "1" --> "0..*" JournalLine
+CostCenter "1" --> "0..*" JournalLine
+LocationDim "1" --> "0..*" JournalLine
+ProjectDim "1" --> "0..*" JournalLine
+
+' ------ Sync Queue & Jobs (outbox-style) ------
+class SyncQueue {
+  +queue_id : UUID <<PK>>
+  entity_type : text   ' journal_entry, invoice, etc.
+  entity_id : UUID
+  action : text ' upsert/delete
+  payload_json : jsonb
+  enqueue_time : timestamptz
+  status : text ' pending/processing/succeeded/failed/dead-letter
+  attempts : int
+  last_attempt_at : timestamptz?
+  external_system_id : UUID <<FK>>
+  idempotency_key : text
+  {unique} (external_system_id, idempotency_key)
+}
+ExternalSystem "1" --> "0..*" SyncQueue
+
+class SyncJob {
+  +sync_job_id : UUID <<PK>>
+  direction : text ' push/pull
+  external_system_id : UUID <<FK>>
+  started_at : timestamptz
+  ended_at : timestamptz?
+  status : text ' running/succeeded/failed/partial
+  total_enqueued : int
+  total_processed : int
+  total_succeeded : int
+  total_failed : int
+  error_summary : text?
+}
+ExternalSystem "1" --> "0..*" SyncJob
+
+class SyncResult {
+  +sync_result_id : UUID <<PK>>
+  sync_job_id : UUID <<FK>>
+  queue_id : UUID <<FK?>>
+  entity_type : text
+  entity_id : UUID
+  status : text ' succeeded/failed'
+  external_id : text?
+  error_code : text?
+  error_message : text?
+  occurred_at : timestamptz
+}
+SyncJob "1" --> "0..*" SyncResult
+SyncQueue "1" --> "0..*" SyncResult
+
+class SyncError {
+  +sync_error_id : UUID <<PK>>
+  sync_result_id : UUID <<FK?>>
+  entity_type : text
+  entity_id : UUID
+  reason : text
+  resolution_note : text?
+  resolved_by : text?
+  resolved_at : timestamptz?
+}
+SyncResult "1" --> "0..*" SyncError
+
+' ------ Reconciliation (balances & tasks) ------
+class BalanceSnapshot {
+  +balance_snapshot_id : UUID <<PK>>
+  external_system_id : UUID <<FK>>
+  snapshot_at : timestamptz
+  account_id : UUID <<FK?>>
+  ext_account_code : text?
+  erp_balance : numeric(18,4)
+  external_balance : numeric(18,4)
+  delta : numeric(18,4)
+  currency : text
+}
+ExternalSystem "1" --> "0..*" BalanceSnapshot
+LedgerAccount "1" --> "0..*" BalanceSnapshot
+
+class ReconciliationTask {
+  +reconciliation_task_id : UUID <<PK>>
+  balance_snapshot_id : UUID <<FK>>
+  account_id : UUID <<FK?>>
+  description : text
+  status : text ' open/in_progress/resolved/waived'
+  created_at : timestamptz
+  resolved_at : timestamptz?
+}
+BalanceSnapshot "1" --> "0..*" ReconciliationTask
+LedgerAccount "1" --> "0..*" ReconciliationTask
+
+@enduml
